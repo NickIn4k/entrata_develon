@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "526977111437",
+    "project_id": "entrata-develon",
+    "storage_bucket": "entrata-develon.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:526977111437:android:b3e6a33c9afb39578619c4",
+        "android_client_info": {
+          "package_name": "com.example.entrata_develon"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDe8A2_QBgzM44JBnyETH4SVYMBSBWiYbQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
