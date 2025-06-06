@@ -1,6 +1,4 @@
 //DA SISTEMARE LA CHIUSURA APP E IL POPUP DI ERRORE QUANDO LA GEOLOCALIZZAZIONE NON VIENE ATTIVATA
-
-
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/services.dart';
