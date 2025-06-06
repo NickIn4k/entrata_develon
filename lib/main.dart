@@ -1,25 +1,31 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'secondPage.dart';
 
-void main() {
-runApp(const MyApp());
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(); 
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-const MyApp({super.key});
+  const MyApp({super.key});
 
-@override
-Widget build(BuildContext context) {
-  return MaterialApp(
-    home: const MyHomePage(title: 'Login'),
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData(
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      navigatorKey: navigatorKey,
+      home: const MyHomePage(title: 'Login'),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
       primarySwatch: Colors.blue,
-    ),
-  );
-}
+      ),
+    );
+  }
 }
 
 // Login
@@ -41,169 +47,87 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // --- Pulsante grande "Accedi con Google" ---
-            SizedBox(
-              width: 300,
-              height: 80,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  textStyle: const TextStyle(fontSize: 20),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                icon: const Icon(Icons.login, size: 32),
-                label: const Text('Accedi con Google'),
-                onPressed: () => signInWithGoogle(),
-              ),
+        child: SizedBox(
+          width: 300,
+          height: 80,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              textStyle: const TextStyle(fontSize: 20),
+              padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-
-            const SizedBox(height: 24), // spazio tra i due bottoni
-
-            // --- Pulsante "Login" che apre SecondaPagina ---
-            SizedBox(
-              width: 200, // puoi regolare la larghezza a piacere
-              height: 50, // altezza “normale” per un pulsante
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SecondaPagina(),
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Login',
-                  style: TextStyle(fontSize: 18),
-                ),
-              ),
-            ),
-          ],
+            icon: const Icon(Icons.login, size: 32),
+            label: const Text('Accedi con Google'),
+            onPressed: () async {
+              bool successo = await signInWithGoogle();
+              if (successo) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SecondaPagina()),
+                );
+              }
+            },
+          ),
         ),
       ),
     );
   }
 }
 
-signInWithGoogle() async {
-  GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-  GoogleSignInAuthentication? googleAuth = await googleUser?.authentication;
-  AuthCredential credential = GoogleAuthProvider.credential(
-    accessToken: googleAuth?.accessToken,
-    idToken: googleAuth?.idToken
-  );
-  UserCredential? userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
-  print(userCredential.user?.displayName);
-}
+Future<bool> signInWithGoogle() async {
+  try {
+    // Avvia il flusso di login con Google
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
-// Seconda Pagina --------------
-
-class SecondaPagina extends StatefulWidget {
-  const SecondaPagina({super.key});
-
-  @override
-  _SecondaPaginaState createState() => _SecondaPaginaState();
-}
-
-class _SecondaPaginaState extends State<SecondaPagina>{
-  Position? _currentPosition;
-  double? _distanceFromFixedPoint;
-
-  // Da cambiare!
-  final double fixedLatitude = 45.553500;
-  final double fixedLongitude = 11.546028;
-
-    @override
-  void initState() {
-    super.initState();
-    _startLocationUpdates();
-  }
-
-  Future<void> _startLocationUpdates() async {
-
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if(!serviceEnabled){
-      print("I serivizi di localizzazione sono disabilitati");
-      return;
+    if (googleUser == null) {
+      return false;
     }
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        print("Permessi negati");
-        return;
-      }
-    }
+    // Ottengo i token di autenticazione
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-    if (permission == LocationPermission.deniedForever) {
-      print("Permessi negati permanentemente");
-      return;
-    }
-
-    Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 1,
-        // timeLimit: Duration(seconds: 3),
-      ),
-    ).listen((Position position) {
-      double distanza = Geolocator.distanceBetween(
-        position.latitude,
-        position.longitude,
-        fixedLatitude,
-        fixedLongitude,
-      );
-
-      setState(() {
-        _currentPosition = position;
-        _distanceFromFixedPoint = distanza;
-      });
-    });
-  }
-
-    @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Apertura porta d\'ingresso'),
-      ),
-      body: Center(
-        child: _currentPosition == null
-            ? const CircularProgressIndicator()
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Latitudine: ${_currentPosition!.latitude.toStringAsFixed(5)}',
-                  ),
-                  Text(
-                    'Longitudine: ${_currentPosition!.longitude.toStringAsFixed(5)}',
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Distanza dal punto fisso:',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  Text(
-                    '${_distanceFromFixedPoint?.toStringAsFixed(2)} metri',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Torna alla Prima Pagina"),
-                  ),
-                ],
-              ),
-      ),
+    // Creo le credenziali Firebase
+    final AuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
     );
+
+    // Effettuo il login su Firebase
+    final UserCredential userCredential =
+        await FirebaseAuth.instance.signInWithCredential(credential);
+
+    // Prelevo l’utente ed estraggo l’email
+    final User? user = userCredential.user;
+    final String? email = user?.email;
+
+    if (email == null || email.isEmpty) {
+      //Logout
+      await FirebaseAuth.instance.signOut();
+      await GoogleSignIn().signOut();
+
+      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+        const SnackBar(content: Text('Errore: impossibile recuperare l’email utente.')),
+      );
+      return false;
+    }
+
+    //dominio deve essere "@develon.com"
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+      //Logout 
+      await FirebaseAuth.instance.signOut();
+      await GoogleSignIn().signOut();
+
+      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+        const SnackBar(content: Text('Accesso consentito solo con email @develon.com')),
+      );
+      return false;
+    }
+    return true;
+  } catch (e) {
+    ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+      SnackBar(content: Text('Errore durante accesso: $e'),
+      backgroundColor: Colors.redAccent,),
+    );
+    return false;
   }
 }
