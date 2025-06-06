@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'secondPage.dart';
+import 'second_page.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -27,8 +27,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-// Login
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -59,10 +57,10 @@ class _MyHomePageState extends State<MyHomePage> {
             label: const Text('Accedi con Google'),
             onPressed: () async {
               bool successo = await signInWithGoogle();
+
               if (successo) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SecondaPagina()),
+                navigatorKey.currentState?.push(
+                  MaterialPageRoute(builder: (_) => const SecondaPagina()),
                 );
               }
             },
@@ -76,27 +74,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
 Future<bool> signInWithGoogle() async {
   try {
-    // Avvia il flusso di login con Google
     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
-    if (googleUser == null) {
-      return false;
-    }
+    if (googleUser == null) return false;
 
-    // Ottengo i token di autenticazione
     final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-    // Creo le credenziali Firebase
     final AuthCredential credential = GoogleAuthProvider.credential(
       accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
 
-    // Effettuo il login su Firebase
-    final UserCredential userCredential =
-        await FirebaseAuth.instance.signInWithCredential(credential);
+    final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
-    // Prelevo l’utente ed estraggo l’email
     final User? user = userCredential.user;
     final String? email = user?.email;
 
@@ -106,7 +96,7 @@ Future<bool> signInWithGoogle() async {
       await GoogleSignIn().signOut();
 
       ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-        const SnackBar(content: Text('Errore: impossibile recuperare l’email utente.')),
+        const SnackBar(content: Text('Errore: impossibile recuperare l\'email utente.')),
       );
       return false;
     }
@@ -118,15 +108,20 @@ Future<bool> signInWithGoogle() async {
       await GoogleSignIn().signOut();
 
       ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-        const SnackBar(content: Text('Accesso consentito solo con email @develon.com')),
+        const SnackBar(
+          content: Text('Accesso consentito solo con email @develon.com'),
+          backgroundColor: Colors.redAccent
+        ),
       );
       return false;
     }
     return true;
   } catch (e) {
     ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-      SnackBar(content: Text('Errore durante accesso: $e'),
-      backgroundColor: Colors.redAccent,),
+      SnackBar(
+        content: Text('Errore durante accesso: $e'),
+        backgroundColor: Colors.redAccent
+      ),
     );
     return false;
   }
