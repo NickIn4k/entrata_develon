@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'second_page.dart';
 import 'hero.dart';
+import 'theme/theme.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -23,7 +24,7 @@ class MyApp extends StatelessWidget {
       home: const MyHomePage(title: 'Login'),
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-      primarySwatch: Colors.blue,
+        primarySwatch: Colors.blue,
       ),
     );
   }
@@ -39,6 +40,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  bool showMenu = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,7 +49,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage("assets/background.jpg"),
+                image: AssetImage("assets/Background.jpg"),
                 fit: BoxFit.cover,
               ),
             ),
@@ -64,17 +66,26 @@ class _MyHomePageState extends State<MyHomePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
-                    "Benvenuto",
+                    "Benvenuto!",
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 30,
+                      fontSize: 45,
                       fontWeight: FontWeight.bold,
                       color: Color.fromARGB(221, 41, 40, 40),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const Text(
+                    "Per ragioni di sicurezza, identificati prima di continuare",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Color.fromARGB(221, 41, 40, 40),
+                    ),
+                  ),
+                  SizedBox(height: 20),
                   SizedBox(
                     width: 250,
-                    height: 55,
+                    height: 80,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -104,7 +115,6 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           ),
-
           Positioned(
             bottom: 16,
             right: 16,
@@ -117,6 +127,8 @@ class _MyHomePageState extends State<MyHomePage> {
               child: Hero(
                 tag: 'logo-hero',
                 child: Container(
+                  height: 92,
+                  width: 92,
                   padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     color: const Color(0x80FFFFFF),
@@ -126,12 +138,59 @@ class _MyHomePageState extends State<MyHomePage> {
                     borderRadius: BorderRadius.circular(8),
                     child: Image.asset(
                       'assets/logoDevelon.png',
-                      width: 78,
-                      height: 78,
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
               ),
+            ),
+          ),
+          Positioned(
+            top: 40,
+            left: 16,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.settings, color: Colors.black87, size: 35),
+                  onPressed: () {
+                    setState(() {
+                      showMenu = !showMenu;
+                    });
+                  },
+                ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  child: showMenu
+                      ? Row(
+                          key: const ValueKey('menu'),
+                          children: [
+                            IconButton(
+                              icon: Icon(Theme.of(context).brightness == Brightness.dark ? Icons.dark_mode : Icons.light_mode, color: Colors.black, size: 35),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  ///////////////////////////////////////////////////////////////////
+                                  SnackBar(content: Text('Modalità modificata')),
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.logout, color: Colors.black, size: 35),
+                              onPressed: () async {
+                                await FirebaseAuth.instance.signOut();
+                                await GoogleSignIn().signOut();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Logout effettuato')),
+                                );
+                              },
+                            ),
+                          ],
+                        )
+                      : SizedBox.shrink(),
+                ),
+              ],
             ),
           ),
         ],

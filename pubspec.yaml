@@ -38,6 +38,8 @@ dependencies:
   firebase_auth: ^5.5.4
   google_sign_in: ^6.3.0
   geolocator: ^10.1.0
+  provider: ^6.1.1
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:
@@ -66,7 +68,7 @@ flutter:
      - assets/logoG.png
      - assets/LogoMigliore.png
      - assets/logoDevelon.png
-     - assets/background.jpg
+     - assets/Background.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
