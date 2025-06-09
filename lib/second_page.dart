@@ -17,11 +17,10 @@ class _SecondaPaginaState extends State<SecondaPagina> {
   double? distanceFromDoor;
   bool isLoading = false;
   bool portaAperta = false;
-
   bool gpsAttivo = true;
 
-  final double doorLatitude = 45.504111;
-  final double doorLongitude = 11.409306;
+  final double doorLatitude = 45.5149300;
+  final double doorLongitude = 11.4880930;
 
   @override
   void initState() {
