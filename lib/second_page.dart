@@ -1,7 +1,12 @@
-//DA SISTEMARE LA CHIUSURA APP E IL POPUP DI ERRORE QUANDO LA GEOLOCALIZZAZIONE NON VIENE ATTIVATA
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter/services.dart';
+import 'package:slide_to_act/slide_to_act.dart';
+import 'package:provider/provider.dart';
+import 'theme/provider_theme.dart';
+import 'static_gesture.dart';
+import 'hero.dart';
 
 class SecondaPagina extends StatefulWidget {
   const SecondaPagina({super.key});
@@ -29,7 +34,6 @@ class _SecondaPaginaState extends State<SecondaPagina> {
     locationUpdates();
   }
 
-
   void ascoltaStatoGps() {
     Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
       setState(() {
@@ -37,7 +41,6 @@ class _SecondaPaginaState extends State<SecondaPagina> {
       });
     });
 
-    // Controllo iniziale
     Geolocator.isLocationServiceEnabled().then((enabled) {
       setState(() {
         gpsAttivo = enabled;
@@ -45,27 +48,41 @@ class _SecondaPaginaState extends State<SecondaPagina> {
     });
   }
 
+  Future<void> mostraDialogErrore(String messaggio) async {
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Errore GPS'),
+        content: Text(messaggio),
+        actions: [
+          TextButton(
+            child: const Text('OK'),
+            onPressed: () => Navigator.of(context).pop(),
+          )
+        ],
+      ),
+    );
+  }
+
   Future<void> locationUpdates() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      await Future.delayed(const Duration(seconds: 5));
-      SystemNavigator.pop();
+      setState(() => gpsAttivo = false);
+      mostraDialogErrore('Attiva la geolocalizzazione per usare l\'app.');
       return;
     }
 
     LocationPermission permesso = await Geolocator.checkPermission();
     if (permesso == LocationPermission.denied) {
       permesso = await Geolocator.requestPermission();
-      if (permesso == LocationPermission.denied){
-        await Future.delayed(const Duration(seconds: 5));
-        SystemNavigator.pop();
+      if (permesso == LocationPermission.denied) {
+        mostraDialogErrore('Permessi di geolocalizzazione negati.');
         return;
       }
     }
 
-    if (permesso == LocationPermission.deniedForever){
-      await Future.delayed(const Duration(seconds: 5));
-      SystemNavigator.pop();
+    if (permesso == LocationPermission.deniedForever) {
+      mostraDialogErrore('Permessi di geolocalizzazione negati in modo permanente.');
       return;
     }
 
@@ -90,14 +107,11 @@ class _SecondaPaginaState extends State<SecondaPagina> {
   }
 
   Future<void> apriPorta() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    await Future.delayed(const Duration(seconds: 5));
+    setState(() => isLoading = true);
+    await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
-    
+
     setState(() {
       isLoading = false;
       portaAperta = true;
@@ -110,6 +124,28 @@ class _SecondaPaginaState extends State<SecondaPagina> {
         duration: Duration(seconds: 3),
       ),
     );
+    return;
+  }
+
+  Future<void> chiudiPorta() async{
+    setState(() => isLoading = true);
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    setState(() {
+      isLoading = false;
+      portaAperta = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Porta Chiusa'),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 3),
+      ),
+    );
+    return;
   }
 
   @override
@@ -118,91 +154,180 @@ class _SecondaPaginaState extends State<SecondaPagina> {
         distanceFromDoor! >= 0 &&
         distanceFromDoor! <= max;
 
-    Widget content;
-
-    if (currentPosition == null) { content = const CircularProgressIndicator(); }
-    else if (isLoading) { content = const CircularProgressIndicator();}
-    else {
-      if (isWithinRange) {
-        content = ElevatedButton(
-          onPressed: () {
-            if (!portaAperta) apriPorta();
-          },
-          style: ElevatedButton.styleFrom(
-            shape: const CircleBorder(),
-            padding: const EdgeInsets.all(60),
-            backgroundColor: portaAperta ? Colors.red : Colors.blue,
-          ),
-          child: Text(
-            portaAperta ? 'Chiudi porta' : 'Apri porta',
-            style: const TextStyle(fontSize: 20, color: Colors.white),
-          ),
-        );
-      } else {
-        content = ElevatedButton(
-          onPressed: null,
-          style: ElevatedButton.styleFrom(
-            shape: const CircleBorder(),
-            padding: const EdgeInsets.all(60),
-            backgroundColor: Colors.grey,
-          ),
-          child: const Text(
-            'Apri porta',
-            style: TextStyle(fontSize: 20, color: Colors.white),
-          ),
-        );
-      }
-    }
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Apertura porta d\'ingresso'),
-        automaticallyImplyLeading: false,
-      ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
         children: [
-          Expanded(
-            child: Center(child: content),
+          Positioned.fill(
+            child: Image.asset(
+              'assets/background/Background2.png',
+              fit: BoxFit.cover,
+            ),
           ),
-
-          // Banner GPS disattivato
-          if (!gpsAttivo)
-          Container(
-            color: Colors.redAccent,
-            padding: const EdgeInsets.all(12),
-            width: double.infinity,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.warning_amber_rounded, color: Colors.white),
-                SizedBox(width: 8),
-                Text(
-                  'Attiva la geolocalizzazione!',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Center(
+                  child: isLoading || currentPosition == null
+                      ? const CircularProgressIndicator()
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: AbsorbPointer(
+                            absorbing: !isWithinRange || !gpsAttivo,
+                            child: Opacity(
+                              opacity: (!isWithinRange || !gpsAttivo) ? 0.5 : 1.0,
+                              child: SlideAction(
+                                borderRadius: 50,
+                                elevation: 4,
+                                innerColor: portaAperta ? Colors.red : Colors.blue,
+                                outerColor: const Color.fromARGB(75, 0, 0, 0),
+                                sliderButtonIcon: Transform(
+                                  alignment: Alignment.center,
+                                  transform: portaAperta
+                                      ? Matrix4.rotationY(3.14159)
+                                      : Matrix4.identity(),
+                                  child: Icon(portaAperta? Icons.lock : Icons.lock_open, color: Colors.white),
+                                ),
+                                alignment: portaAperta ? Alignment.center : Alignment.center,
+                                text: portaAperta ? 'Scorri per chiudere' : 'Scorri per aprire',
+                                textStyle: const TextStyle(
+                                  color: Color.fromARGB(255, 207, 207, 207),
+                                  fontSize: 20,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                onSubmit: () {
+                                  if (portaAperta) {
+                                    chiudiPorta();
+                                  } else {
+                                    apriPorta();
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+              if (!gpsAttivo)
+                Container(
+                  color: Colors.redAccent,
+                  padding: const EdgeInsets.all(12),
+                  width: double.infinity,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text(
+                        'Attiva la geolocalizzazione!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+              if (gpsAttivo && distanceFromDoor != null && distanceFromDoor! > max)
+                Container(
+                  color: Colors.redAccent,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                  width: double.infinity,
+                  child: Text(
+                    'Devi avvicinarti al punto! (${distanceFromDoor!.toStringAsFixed(2)} m)',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+            ],
+          ),
+          Positioned(
+            top: 40,
+            left: 16,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                IconButton(
+                  icon:
+                      const Icon(Icons.settings, color: Colors.black87, size: 35),
+                  onPressed: () {
+                    setState(() => StaticGesture.showMenu = !StaticGesture.showMenu);
+                  },
+                ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  child: StaticGesture.showMenu
+                      ? Row(
+                          key: const ValueKey('menu'),
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Provider.of<ThemeProvider>(context).isDarkMode
+                                    ? Icons.dark_mode
+                                    : Icons.light_mode,
+                                color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
+                                size: 35,
+                              ),
+                              onPressed: () {
+                                Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.logout, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
+                              onPressed: () async {
+                                await FirebaseAuth.instance.signOut();
+                                await GoogleSignIn().signOut();
+                                
+                                if(!mounted) return;
+                                StaticGesture.showAppSnackBar(context, 'Logout effettuato');
+
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                          ],
+                        )
+                      : SizedBox.shrink(),
                 ),
               ],
             ),
           ),
-
-          if (gpsAttivo && distanceFromDoor != null && distanceFromDoor! > max)
-            Container(
-              color: Colors.redAccent,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-              width: double.infinity,
-              child: Text(
-                'Devi avvicinarti al punto! (${distanceFromDoor!.toStringAsFixed(2)} m)',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => HeroDetailPage()),
+                );
+              },
+              child: Hero(
+                tag: 'logo-hero',
+                child: Container(
+                  height: 92,
+                  width: 92,
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: StaticGesture.getTextColor(context, Colors.black54, Colors.white70),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
+          ),
         ],
       ),
     );

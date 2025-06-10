@@ -2,16 +2,25 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'theme/theme.dart';
+import 'theme/provider_theme.dart';
+import 'package:provider/provider.dart';
+import 'static_gesture.dart';
 import 'second_page.dart';
 import 'hero.dart';
-import 'theme/theme.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-void main() async{
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); 
-  runApp(const MyApp());
+  await Firebase.initializeApp();
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -21,11 +30,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
-      home: const MyHomePage(title: 'Login'),
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: lightMode,   // ?
+      darkTheme: darkMode,  // ?
+      themeMode: StaticGesture.getThemeMode(context),
+      home: const MyHomePage(title: 'Login'),
     );
   }
 }
@@ -40,16 +49,16 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  bool showMenu = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage("assets/Background.jpg"),
+                image: AssetImage(StaticGesture.getPath(context, 'assets/background/Background.jpg', 'assets/background/DarkBackground.png')),
                 fit: BoxFit.cover,
               ),
             ),
@@ -59,27 +68,27 @@ class _MyHomePageState extends State<MyHomePage> {
               margin: const EdgeInsets.symmetric(horizontal: 24),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0x80FFFFFF),
+                color: StaticGesture.getContainerColor(context),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     "Benvenuto!",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 45,
                       fontWeight: FontWeight.bold,
-                      color: Color.fromARGB(221, 41, 40, 40),
+                      color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
                     ),
                   ),
-                  const Text(
-                    "Per ragioni di sicurezza, identificati prima di continuare",
+                  Text(
+                    "Per ragioni di sicurezza, identificati per proseguire.",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 20,
-                      color: Color.fromARGB(221, 41, 40, 40),
+                      color: StaticGesture.getTextColor(context, Colors.white70, Colors.black87),
                     ),
                   ),
                   SizedBox(height: 20),
@@ -88,16 +97,16 @@ class _MyHomePageState extends State<MyHomePage> {
                     height: 80,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black87,
+                        backgroundColor: StaticGesture.getButtonColor(context),
+                        foregroundColor: StaticGesture.getTextColor(context, Colors.white, Colors.black87),
                         textStyle: const TextStyle(fontSize: 18),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: const BorderSide(color: Colors.grey),
+                          side: BorderSide(color: StaticGesture.getBorderColor(context)),
                         ),
                       ),
                       icon: Image.asset(
-                        'assets/LogoMigliore.png',
+                        'assets/logo/LogoMigliore.png',
                         height: 24,
                       ),
                       label: const Text('Continua con Google'),
@@ -121,7 +130,7 @@ class _MyHomePageState extends State<MyHomePage> {
             child: GestureDetector(
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const HeroDetailPage()),
+                  MaterialPageRoute(builder: (_) => HeroDetailPage()),
                 );
               },
               child: Hero(
@@ -131,13 +140,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   width: 92,
                   padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
-                    color: const Color(0x80FFFFFF),
+                    color: StaticGesture.getTextColor(context, Colors.black54, Colors.white70),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.asset(
-                      'assets/logoDevelon.png',
+                      StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
                       width: 90,
                       height: 90,
                       fit: BoxFit.contain,
@@ -154,36 +163,36 @@ class _MyHomePageState extends State<MyHomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 IconButton(
-                  icon: Icon(Icons.settings, color: Colors.black87, size: 35),
+                  icon: Icon(Icons.settings, color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
                   onPressed: () {
                     setState(() {
-                      showMenu = !showMenu;
+                      StaticGesture.showMenu = !StaticGesture.showMenu;
                     });
                   },
                 ),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
-                  child: showMenu
+                  child: StaticGesture.showMenu
                       ? Row(
                           key: const ValueKey('menu'),
                           children: [
                             IconButton(
-                              icon: Icon(Theme.of(context).brightness == Brightness.dark ? Icons.dark_mode : Icons.light_mode, color: Colors.black, size: 35),
+                              icon: Icon(
+                                StaticGesture.getIconTheme(context),
+                                color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
+                                size: 35,
+                              ),
                               onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  ///////////////////////////////////////////////////////////////////
-                                  SnackBar(content: Text('Modalità modificata')),
-                                );
+                                StaticGesture.changeTheme(context);
                               },
                             ),
                             IconButton(
-                              icon: Icon(Icons.logout, color: Colors.black, size: 35),
+                              icon: Icon(Icons.logout, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
                               onPressed: () async {
                                 await FirebaseAuth.instance.signOut();
                                 await GoogleSignIn().signOut();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Logout effettuato')),
-                                );
+                                if(!mounted) return;
+                                  StaticGesture.showAppSnackBar(context, 'Logout effettuato');
                               },
                             ),
                           ],
@@ -222,9 +231,8 @@ Future<bool> signInWithGoogle() async {
       await FirebaseAuth.instance.signOut();
       await GoogleSignIn().signOut();
 
-      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-        const SnackBar(content: Text('Errore: impossibile recuperare l\'email utente.')),
-      );
+      StaticGesture.showAppSnackBar(navigatorKey.currentContext!, 'Errore: impossibile recuperare l\'email utente.');
+
       return false;
     }
 
@@ -233,23 +241,12 @@ Future<bool> signInWithGoogle() async {
       //Logout 
       await FirebaseAuth.instance.signOut();
       await GoogleSignIn().signOut();
-
-      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-        const SnackBar(
-          content: Text('Accesso consentito solo con email @develon.com'),
-          backgroundColor: Colors.redAccent
-        ),
-      );
+      StaticGesture.showAppSnackBar(navigatorKey.currentContext!, 'Accesso consentito solo con email @develon.com');
       return false;
     }
     return true;
   } catch (e) {
-    ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-      SnackBar(
-        content: Text('Errore durante accesso: $e'),
-        backgroundColor: Colors.redAccent
-      ),
-    );
+    StaticGesture.showAppSnackBar(navigatorKey.currentContext!, 'Errore: $e');
     return false;
   }
 }

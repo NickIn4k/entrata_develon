@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
   bool _isDarkMode = false;
-
   bool get isDarkMode => _isDarkMode;
 
   // Costruttore
@@ -25,8 +24,11 @@ class ThemeProvider extends ChangeNotifier {
   // Carica il tema salvato da SharedPreferences
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    // Se NON esite ( null ), assume false ( tema chiaro )
-    _isDarkMode = prefs.getBool('isDarkMode') ?? false;
+    // Se la trova
+    if(prefs.containsKey('isDarkMode')){
+      _isDarkMode = prefs.getBool('isDarkMode')!;
+    }
+    
     // Notifica i widget che usano questo provider, per aggiornare la UI
     notifyListeners();
   }

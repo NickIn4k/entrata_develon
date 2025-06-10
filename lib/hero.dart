@@ -1,28 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'static_gesture.dart';
 
-class HeroDetailPage extends StatelessWidget {
+class HeroDetailPage extends StatefulWidget {
   const HeroDetailPage({super.key});
 
+  @override
+  State<HeroDetailPage> createState() => _HeroDetailPageState();
+}
+
+class _HeroDetailPageState extends State<HeroDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
+          // sfondo
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage("assets/background.jpg"),
+                image: AssetImage(StaticGesture.getPath(context, 'assets/background/Background.jpg', 'assets/background/DarkBackground.png')),
                 fit: BoxFit.cover,
               ),
             ),
           ),
+          // contenuto centrale
           Center(
             child: Hero(
               tag: 'logo-hero',
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0x80FFFFFF),
+                  color: StaticGesture.getContainerColor(context),
                   borderRadius: BorderRadius.circular(32),
                 ),
                 child: Column(
@@ -31,35 +41,38 @@ class HeroDetailPage extends StatelessWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: Image.asset(
-                        'assets/logoDevelon.png',
+                        StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
                         width: 200,
                         height: 200,
                       ),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       "PCTO 2025",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 45,
                         fontWeight: FontWeight.bold,
-                        color: Color.fromARGB(221, 41, 40, 40),
+                        color: StaticGesture.getTextColor(
+                          context, Colors.white, Colors.black87),
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
+                    Text(
                       "Carlassara Pietro e Creazzo Nicola",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
-                        color: Color.fromARGB(221, 41, 40, 40),
+                        color: StaticGesture.getTextColor(
+                          context, Colors.white, Colors.black87),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
             ),
           ),
+          // pulsante di ritorno
           Positioned(
             bottom: 16,
             right: 16,
@@ -72,14 +85,14 @@ class HeroDetailPage extends StatelessWidget {
                   width: 92,
                   padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
-                    color: const Color(0x80FFFFFF),
+                    color: StaticGesture.getContainerColor(context),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Center(
                       child: Image.asset(
-                        'assets/LogoMigliore.png',
+                        'assets/logo/LogoMigliore.png',
                         width: 60,
                         height: 60,
                         fit: BoxFit.contain,
@@ -88,6 +101,63 @@ class HeroDetailPage extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
+          ),
+          // settings / logout
+          Positioned(
+            top: 40,
+            left: 16,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.settings,
+                    color: StaticGesture.getTextColor(
+                      context, Colors.white, Colors.black87),
+                    size: 35,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      StaticGesture.showMenu = !StaticGesture.showMenu;
+                    });
+                  },
+                ),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  child: StaticGesture.showMenu
+                      ? Row(
+                          key: const ValueKey('menu'),
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                StaticGesture.getIconTheme(context),
+                                color: StaticGesture.getTextColor(
+                                  context, Colors.white, Colors.black),
+                                size: 35,
+                              ),
+                              onPressed: () {
+                                StaticGesture.changeTheme(context);
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.logout,
+                                color: StaticGesture.getTextColor(
+                                  context, Colors.white, Colors.black),
+                                size: 35,
+                              ),
+                              onPressed: () async {
+                                await FirebaseAuth.instance.signOut();
+                                await GoogleSignIn().signOut();
+                                StaticGesture.showAppSnackBar(context, 'Logout effettuato');
+                              },
+                            ),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
             ),
           ),
         ],
