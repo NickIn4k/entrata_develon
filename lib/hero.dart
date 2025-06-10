@@ -4,7 +4,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'static_gesture.dart';
 
 class HeroDetailPage extends StatefulWidget {
-  const HeroDetailPage({super.key});
+  final Pagina pagina;
+
+  const HeroDetailPage({super.key, required this.pagina});
 
   @override
   State<HeroDetailPage> createState() => _HeroDetailPageState();
@@ -20,7 +22,11 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage(StaticGesture.getPath(context, 'assets/background/Background.jpg', 'assets/background/DarkBackground.png')),
+                image: AssetImage(
+                  widget.pagina == Pagina.prima 
+                  ? StaticGesture.getPath(context, 'assets/background/Background.jpg', 'assets/background/DarkBackground.png')
+                  : StaticGesture.getPath(context, 'assets/background/Background2.png', 'assets/background/Background2.png')
+                  ),
                 fit: BoxFit.cover,
               ),
             ),
@@ -92,9 +98,11 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                     borderRadius: BorderRadius.circular(8),
                     child: Center(
                       child: Image.asset(
-                        'assets/logo/LogoMigliore.png',
-                        width: 60,
-                        height: 60,
+                        widget.pagina == Pagina.prima 
+                        ? 'assets/logo/LogoMigliore.png'
+                        : 'assets/logo/BuildingIcon.png',
+                        width: widget.pagina == Pagina.prima ? 60 : 90,
+                        height: widget.pagina == Pagina.prima ? 60 : 90,
                         fit: BoxFit.contain,
                       ),
                     ),

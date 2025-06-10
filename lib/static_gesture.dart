@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'theme/provider_theme.dart';
 import 'package:provider/provider.dart';
 
+enum Pagina{
+  prima,
+  seconda
+}
+
 class StaticGesture{
   StaticGesture();
   
@@ -52,6 +57,10 @@ class StaticGesture{
 
   static Color getBorderColor(BuildContext context){
     return Provider.of<ThemeProvider>(context).isDarkMode? Colors.black : Colors.grey;
+  }
+
+  static Color getIconColor(BuildContext context, Color brightColor, Color darkColor){
+    return Provider.of<ThemeProvider>(context).isDarkMode? darkColor : brightColor;
   }
 
   static bool showMenu = false;

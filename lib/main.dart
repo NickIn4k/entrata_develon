@@ -130,7 +130,7 @@ class _MyHomePageState extends State<MyHomePage> {
             child: GestureDetector(
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => HeroDetailPage()),
+                  MaterialPageRoute(builder: (_) => HeroDetailPage(pagina: Pagina.prima)),
                 );
               },
               child: Hero(

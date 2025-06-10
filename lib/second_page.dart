@@ -159,7 +159,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/background/Background2.png',
+              StaticGesture.getPath(context, 'assets/background/Background2.png', 'assets/background/Background2.png'),
               fit: BoxFit.cover,
             ),
           ),
@@ -179,8 +179,10 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                               child: SlideAction(
                                 borderRadius: 50,
                                 elevation: 4,
-                                innerColor: portaAperta ? Colors.red : Colors.blue,
-                                outerColor: const Color.fromARGB(75, 0, 0, 0),
+                                innerColor: portaAperta 
+                                ? StaticGesture.getIconColor(context, Colors.red, const Color.fromARGB(255, 150, 11, 1))
+                                : StaticGesture.getIconColor(context, Colors.lightBlue, const Color.fromARGB(255, 9, 103, 226)),
+                                outerColor: StaticGesture.getContainerColor(context),
                                 sliderButtonIcon: Transform(
                                   alignment: Alignment.center,
                                   transform: portaAperta
@@ -190,8 +192,8 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                                 ),
                                 alignment: portaAperta ? Alignment.center : Alignment.center,
                                 text: portaAperta ? 'Scorri per chiudere' : 'Scorri per aprire',
-                                textStyle: const TextStyle(
-                                  color: Color.fromARGB(255, 207, 207, 207),
+                                textStyle: TextStyle(
+                                  color: StaticGesture.getTextColor(context, Colors.white, Colors.black), 
                                   fontSize: 20,
                                   fontStyle: FontStyle.italic,
                                 ),
@@ -254,7 +256,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
               children: [
                 IconButton(
                   icon:
-                      const Icon(Icons.settings, color: Colors.black87, size: 35),
+                      Icon(Icons.settings, color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
                   onPressed: () {
                     setState(() => StaticGesture.showMenu = !StaticGesture.showMenu);
                   },
@@ -302,7 +304,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
             child: GestureDetector(
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => HeroDetailPage()),
+                  MaterialPageRoute(builder: (_) => HeroDetailPage(pagina: Pagina.seconda)),
                 );
               },
               child: Hero(
