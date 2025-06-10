@@ -16,22 +16,24 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // sfondo
+          // Sfondo
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
                 image: AssetImage(
                   widget.pagina == Pagina.prima 
                   ? StaticGesture.getPath(context, 'assets/background/Background.jpg', 'assets/background/DarkBackground.png')
-                  : StaticGesture.getPath(context, 'assets/background/Background2.png', 'assets/background/Background2.png')
+                  : StaticGesture.getPath(context, 'assets/background/Background2.jpg', 'assets/background/DarkBackground2.png')
                   ),
                 fit: BoxFit.cover,
               ),
             ),
           ),
           // contenuto centrale
+
           Center(
             child: Hero(
               tag: 'logo-hero',
@@ -41,40 +43,41 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                   color: StaticGesture.getContainerColor(context),
                   borderRadius: BorderRadius.circular(32),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.asset(
-                        StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
-                        width: 200,
-                        height: 200,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      "PCTO 2025",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 45,
-                        fontWeight: FontWeight.bold,
-                        color: StaticGesture.getTextColor(
-                          context, Colors.white, Colors.black87),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      "Carlassara Pietro e Creazzo Nicola",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20,
-                        color: StaticGesture.getTextColor(
-                          context, Colors.white, Colors.black87),
-                      ),
-                    ),
-                  ],
-                ),
+                child: SingleChildScrollView(
+                  child: SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.asset(
+                            StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
+                            width: 200,
+                            height: 200,
+                          ),
+                        ),
+                        Text(
+                          "PCTO 2025",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 45,
+                            fontWeight: FontWeight.bold,
+                            color: StaticGesture.getTextColor(context, Colors.white, Colors.black87),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          "Carlassara Pietro e Creazzo Nicola",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: StaticGesture.getTextColor( context, Colors.white, Colors.black87),
+                          ),
+                        ),
+                      ],
+                    ),  
+                  )
+                )
               ),
             ),
           ),
@@ -101,8 +104,8 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                         widget.pagina == Pagina.prima 
                         ? 'assets/logo/LogoMigliore.png'
                         : 'assets/logo/BuildingIcon.png',
-                        width: widget.pagina == Pagina.prima ? 60 : 90,
-                        height: widget.pagina == Pagina.prima ? 60 : 90,
+                        width: 60,
+                        height: 60,
                         fit: BoxFit.contain,
                       ),
                     ),

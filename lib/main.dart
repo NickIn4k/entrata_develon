@@ -28,13 +28,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+     User? user = FirebaseAuth.instance.currentUser;
+
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: lightMode,   // ?
       darkTheme: darkMode,  // ?
       themeMode: StaticGesture.getThemeMode(context),
-      home: const MyHomePage(title: 'Login'),
+      home: user != null ? const SecondaPagina() : const MyHomePage(title: 'Login'),
     );
   }
 }
@@ -184,15 +186,6 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                               onPressed: () {
                                 StaticGesture.changeTheme(context);
-                              },
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.logout, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
-                              onPressed: () async {
-                                await FirebaseAuth.instance.signOut();
-                                await GoogleSignIn().signOut();
-                                if(!mounted) return;
-                                  StaticGesture.showAppSnackBar(context, 'Logout effettuato');
                               },
                             ),
                           ],

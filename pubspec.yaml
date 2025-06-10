@@ -60,7 +60,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/logo/logoG.png"
+  image_path: "assets/logo/app_logo.png"
 
 # The following section is specific to Flutter packages.a
 flutter:
@@ -74,7 +74,8 @@ flutter:
   # Background
      - assets/background/Background.jpg
      - assets/background/DarkBackground.png
-     - assets/background/Background2.png
+     - assets/background/Background2.jpg
+     - assets/background/DarkBackground2.png
 
   # Logo
      - assets/logo/logoDevelonI.png
@@ -82,6 +83,7 @@ flutter:
      - assets/logo/LogoMigliore.png
      - assets/logo/logoDevelon.png
      - assets/logo/BuildingIcon.png
+     - assets/logo/app_logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

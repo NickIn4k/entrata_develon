@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'theme/provider_theme.dart';
 import 'static_gesture.dart';
 import 'hero.dart';
+import 'main.dart';
 
 class SecondaPagina extends StatefulWidget {
   const SecondaPagina({super.key});
@@ -16,7 +17,7 @@ class SecondaPagina extends StatefulWidget {
 }
 
 class _SecondaPaginaState extends State<SecondaPagina> {
-  final double max = 200;
+  final double max = 100;
 
   Position? currentPosition;
   double? distanceFromDoor;
@@ -159,7 +160,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              StaticGesture.getPath(context, 'assets/background/Background2.png', 'assets/background/Background2.png'),
+              StaticGesture.getPath(context, 'assets/background/Background2.jpg', 'assets/background/DarkBackground2.png'),
               fit: BoxFit.cover,
             ),
           ),
@@ -288,7 +289,9 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                                 if(!mounted) return;
                                 StaticGesture.showAppSnackBar(context, 'Logout effettuato');
 
-                                Navigator.of(context).pop();
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(builder: (_) => MyHomePage(title: 'login')),
+                                );
                               },
                             ),
                           ],
