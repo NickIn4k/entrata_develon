@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'static_gesture.dart';
+import 'account.dart';
 
 class HeroDetailPage extends StatefulWidget {
   final Pagina pagina;
@@ -135,26 +137,37 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
               ),
             ),
           ),
-          // settings / logout
           Positioned(
-            top: 40,
+            top: 45,
             left: 16,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.settings, color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
-                  onPressed: () {
-                    setState(() {
-                      StaticGesture.menuFlag.value = !StaticGesture.menuFlag.value;
-                    });
-                  },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(100),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.all(1),
+                decoration: BoxDecoration(
+                  color: StaticGesture.getContainerColor(context),
+                  borderRadius: BorderRadius.circular(isOpen ? 20 : 100),
                 ),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 500),
-                  child: isOpen
-                      ? Row(
-                          key: const ValueKey('menu'),
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  alignment: Alignment.centerLeft, // fondamentale: si apre da sinistra
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.settings,
+                            color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
+                        onPressed: () {
+                          setState(() {
+                            StaticGesture.menuFlag.value = !StaticGesture.menuFlag.value;
+                          });
+                        },
+                      ),
+                      if (isOpen)
+                        Row(
                           children: [
                             IconButton(
                               icon: Icon(
@@ -167,11 +180,21 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                                 StaticGesture.changeTheme(context);
                               },
                             ),
+                            if(widget.pagina == Pagina.seconda)
+                              IconButton(
+                                icon: Icon(Icons.person, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => AccountPage(title: "Account Page")),
+                                  );
+                                },
+                              ),
                           ],
-                        )
-                      : const SizedBox.shrink(),
+                        ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
         ],

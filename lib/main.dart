@@ -195,42 +195,55 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           Positioned(
-            top: 40,
-            left: 16,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.settings, color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
-                  onPressed: () {
-                    setState(() {
-                      StaticGesture.menuFlag.value = !StaticGesture.menuFlag.value;
-                    });
-                  },
-                ),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 500),
-                  child: isOpen
-                      ? Row(
-                          key: const ValueKey('menu'),
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                StaticGesture.getIconTheme(context),
-                                color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
-                                size: 35,
+              top: 45,
+              left: 16,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(100),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  padding: const EdgeInsets.all(1),
+                  decoration: BoxDecoration(
+                    color: StaticGesture.getContainerColor(context),
+                    borderRadius: BorderRadius.circular(isOpen ? 20 : 100),
+                  ),
+                  child: AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    alignment: Alignment.centerLeft, // fondamentale: si apre da sinistra
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.settings,
+                              color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
+                          onPressed: () {
+                            setState(() {
+                              StaticGesture.menuFlag.value = !StaticGesture.menuFlag.value;
+                            });
+                          },
+                        ),
+                        if (isOpen)
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  StaticGesture.getIconTheme(context),
+                                  color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
+                                  size: 35,
+                                ),
+                                onPressed: () {
+                                  Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+                                },
                               ),
-                              onPressed: () {
-                                StaticGesture.changeTheme(context);
-                              },
-                            ),
-                          ],
-                        )
-                      : SizedBox.shrink(),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
-              ],
+              ),
             ),
-          ),
         ],
       ),
     );

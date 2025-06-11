@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'dart:async';  // ?
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:geolocator/geolocator.dart';
@@ -12,6 +15,7 @@ import 'theme/provider_theme.dart';
 import 'static_gesture.dart';
 import 'hero.dart';
 import 'main.dart';
+import 'account.dart';
 
 // SecondaPagina è un widget a stato variabile
 class SecondaPagina extends StatefulWidget {
@@ -29,7 +33,7 @@ class SecondaPagina extends StatefulWidget {
 // _SecondaPaginaState è una classe privata ( _ ), estende la classe State<SecondaPagina> cioè gestisce lo stato della seconda pagina
 class _SecondaPaginaState extends State<SecondaPagina> {
   // Distanza massima ( in metri )
-  final double max = 100000;
+  final double max = 1000000;
 
   // Contiene la posizione GPS attuale dell'utente
   Position? currentPosition;
@@ -47,6 +51,9 @@ class _SecondaPaginaState extends State<SecondaPagina> {
   // Latidudine e longitudine della porta
   final double doorLatitude = 45.5149300;
   final double doorLongitude = 11.4880930;
+
+  // Gestore dello stream della posizione GPS (da chiudere nel dispose)
+  StreamSubscription<Position>? positionStream;
 
   // Metodo chiamato alla creazione del widget, quando la schermata viene creata
   @override
@@ -71,32 +78,16 @@ class _SecondaPaginaState extends State<SecondaPagina> {
     });
   }
 
-  // Metodo che ascolta lo stato del GPS ( attivato/disattivato )
-  void ascoltaStatoGps() {
-    // Quando lo stato del servizio GPS cambia aggiorna la variabile gpsAttivo
-    // GPS attivo: ServiceStatus.enabled
-    // GPS disattivato: ServiceStatus.disabled
-
-    Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
-      // Notifica Flutter che il widget deve essere aggiornato
-      // Richiama il metodo build() del widget
-      setState(() {
-        gpsAttivo = status == ServiceStatus.enabled;
-      });
-    });
-
-    // Controllo iniziale, all'avvio ( viene quindi eseguita una sola volta )
-    Geolocator.isLocationServiceEnabled().then((enabled) {
-      // Notifica Flutter che il widget deve essere aggiornato
-      // Richiama il metodo build() del widget
-      setState(() {
-        gpsAttivo = enabled;
-      });
-    });
+  // ?
+  @override
+  void dispose() {
+    positionStream?.cancel();
+    StaticGesture.menuFlag.removeListener(onFlagChanged);
+    super.dispose();
   }
 
-  // Metodo per mostrare il messaggio di errore, per il GPS
-  Future<void> mostraDialogErrore(String messaggio) async {
+  // Metodo per mostrare il messaggio di errore, per il GPS ( se è attivo o disattivata la geolocalizzazione )
+  Future<void> mostraDialogErroreGPSAD(String messaggio) async {
     // Funzione per mostrare un dialogo modale
     // Flutter costruisce un nuovo widget sopra l'interfaccia utente
     // Blocca l'interazione con la UI, finche l'utente non chiude il dialogo 
@@ -116,37 +107,102 @@ class _SecondaPaginaState extends State<SecondaPagina> {
               AppSettings.openAppSettings(type: AppSettingsType.location);
               // Chiudo il dialogo
               Navigator.of(context).pop();
-            }
+
+
+              // Aspetto 2 secondi e poi ricontrollo se il GPS è attivo
+              // Se NON è stata riattivata la geolocalizzazione il popup di errore viene mostrato di nuovo
+              Future.delayed(const Duration(seconds: 2), 
+              // Funzione asincrona che verrà eseguita dopo 2 secondi
+              () async {
+                bool gps = await Geolocator.isLocationServiceEnabled();
+                if (!gps) {
+                  // Mostra di nuovo il popup se GPS è ancora spento
+                  mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+                }
+                // Aggiorna lo stato dell'app
+                setState(() {
+                  gpsAttivo = gps;
+                });
+              });
+            },
           ),
           TextButton(
             child: const Text("Nega"),
             onPressed: () {
-                // Chiudo il dialogo
-                Navigator.of(context).pop();
-                // Chiudo l'applicazione
-                SystemNavigator.pop();
-              },
+              // Chiude il dialogo
+              Navigator.of(context).pop(); 
+              // Chiude l'app
+              SystemNavigator.pop();        
+            },
           ),
         ],
       ),
     );
   }
 
+  // Metodo per mostrare il messaggio di errore, per il GPS ( per i permessi )
+  Future<void> mostraDialogErrore(String messaggio) async {
+    // Funzione per mostrare un dialogo modale
+    // Flutter costruisce un nuovo widget sopra l'interfaccia utente
+    // Blocca l'interazione con la UI, finche l'utente non chiude il dialogo 
+    await showDialog(
+      // context serve a Flutter per sapere dove mostrare il dialogo ( in quale parte dell'app )
+      context: context,
+      // builder: Funzione che costruisce il contenuto del dialogo
+      builder: (_) => AlertDialog(
+        title: const Text('Permessi GPS negati'),
+        content: Text(messaggio),
+        // actions è una lista di pulsanti in basso nel popup
+        actions: [
+          TextButton(
+            child: const Text('OK'),
+            onPressed: () {
+              // Chiudo il dialogo
+              Navigator.of(context).pop();
+              // Chiudo l'app
+              SystemNavigator.pop();
+            }
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  // Metodo che ascolta lo stato del GPS ( attivato/disattivato )
+  void ascoltaStatoGps() {
+    // Quando lo stato del servizio GPS cambia aggiorna la variabile gpsAttivo
+    // GPS attivo: ServiceStatus.enabled
+    // GPS disattivato: ServiceStatus.disabled
+
+    Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
+      // Notifica Flutter che il widget deve essere aggiornato
+      // Richiama il metodo build() del widget
+      setState(() {
+        gpsAttivo = status == ServiceStatus.enabled;
+      });
+
+      if(!gpsAttivo){
+         mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+      }
+    });
+
+    // Controllo iniziale, all'avvio ( viene quindi eseguita una sola volta )
+    Geolocator.isLocationServiceEnabled().then((enabled) {
+      // Notifica Flutter che il widget deve essere aggiornato
+      // Richiama il metodo build() del widget
+      setState(() {
+        gpsAttivo = enabled;
+      });
+
+      if(!gpsAttivo){
+         mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+      }
+    });
+  }
+
   // Metodo asincrono che gestisce gli aggiornamenti della posizione GPS
   Future<void> locationUpdates() async {
-
-    // SERVIZIO
-    // Controlla se il servizio GPS è attivo
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    // Se il GPS è disattivato
-    if (!serviceEnabled) {
-      // Aggiorna lo stato della varibile gpsAttivo
-      setState(() => gpsAttivo = false);
-      // Mostra il messaggio di errore con un dialogo
-      mostraDialogErrore('Attiva la geolocalizzazione per usare l\'app.');
-
-      return;
-    }
 
     // PERMESSI
     // Controlla i permessi dell'app per accedere alla posizione
@@ -174,23 +230,45 @@ class _SecondaPaginaState extends State<SecondaPagina> {
       return;
     }
 
+
+    // Usa l'ultima posizione nota (se c'è)
+    Position? lastKnown = await Geolocator.getLastKnownPosition();
+    if (lastKnown != null) {
+      // Aggiorna lo stato
+      setState(() {
+        currentPosition = lastKnown;
+        // Calcola la distanza
+        distanceFromDoor = Geolocator.distanceBetween(
+          lastKnown.latitude,
+          lastKnown.longitude,
+          doorLatitude,
+          doorLongitude,
+        );
+      });
+    }
+
     // Ascolta la posizione in tempo reale
     // getPositionStream, riceve aggiornamenti continui della posizione
-    Geolocator.getPositionStream(
+    // Metodo che restituisce un stream continuo di posizioni
+    // Ogni colta che il GPS rileva un cambiamento fornisce un nuovo oggetto Position
+    positionStream = Geolocator.getPositionStream(
+      // Parametri di configurazione dello stream
       locationSettings: const LocationSettings(
-        // Massiam precizione
+        // Massima Precisione
         accuracy: LocationAccuracy.bestForNavigation,
-        // L'evento si attiva ogni volta che ti
+        // L'evento si attiva ogni volta che ti sposti di almeno un metro
         distanceFilter: 1,
       ),
+    // Ricezione posizione, permette di ascoltare i dati dello stream
     ).listen((Position position) {
+      // Calcolo della distanza
       double distanza = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
         doorLatitude,
         doorLongitude,
       );
-
+      // Aggiornamento dello stato, notifica di aggiornare della UI
       setState(() {
         currentPosition = position;
         distanceFromDoor = distanza;
@@ -276,14 +354,19 @@ class _SecondaPaginaState extends State<SecondaPagina> {
               children: [
                 Expanded(
                   child: Center(
-                    child: isLoading || currentPosition == null
-                        ? const CircularProgressIndicator()
-                        : Padding(
+                    // child: isLoading || currentPosition == null
+                        // ? const CircularProgressIndicator()
+                        // : Padding(
+                        child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
+                            // child: AbsorbPointer(
+                            //   absorbing: !isWithinRange || !gpsAttivo,
+                            //   child: Opacity(
+                            //    opacity: (!isWithinRange || !gpsAttivo) ? 0.5 : 1.0,
                             child: AbsorbPointer(
-                              absorbing: !isWithinRange || !gpsAttivo,
-                              child: Opacity(
-                                opacity: (!isWithinRange || !gpsAttivo) ? 0.5 : 1.0,
+                                absorbing: isLoading || currentPosition == null || !isWithinRange || !gpsAttivo,
+                                child: Opacity(
+                                opacity: (isLoading || currentPosition == null || !isWithinRange || !gpsAttivo) ? 0.5 : 1.0,
                                 child: SlideAction(
                                   borderRadius: 50,
                                   elevation: 4,
@@ -318,27 +401,6 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                           ),
                   ),
                 ),
-                if (!gpsAttivo)
-                  Container(
-                    color: Colors.redAccent,
-                    padding: const EdgeInsets.all(12),
-                    width: double.infinity,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.warning_amber_rounded, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text(
-                          'Attiva la geolocalizzazione!',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 if (gpsAttivo && distanceFromDoor != null && distanceFromDoor! > max)
                   Container(
                     color: Colors.redAccent,
@@ -357,23 +419,16 @@ class _SecondaPaginaState extends State<SecondaPagina> {
               ],
             ),
             Positioned(
-              top: 40,
+              top: 45,
               left: 16,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(100),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(1),
                   decoration: BoxDecoration(
                     color: StaticGesture.getContainerColor(context),
                     borderRadius: BorderRadius.circular(isOpen ? 20 : 100),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0x80000000),
-                        blurRadius: 8,
-                        offset: const Offset(2, 4),
-                      ),
-                    ],
                   ),
                   child: AnimatedSize(
                     duration: const Duration(milliseconds: 300),
@@ -424,7 +479,9 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                               IconButton(
                                 icon: Icon(Icons.person, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
                                 onPressed: () {
-                                  
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (_) => AccountPage(title: "Account Page")),
+                                  );
                                 },
                               ),
                             ],
@@ -435,7 +492,6 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                 ),
               ),
             ),
-
             Positioned(
               bottom: 16,
               right: 16,
@@ -454,7 +510,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                     decoration: BoxDecoration(
                       color: StaticGesture.getTextColor(context, Colors.black54, Colors.white70),
                       borderRadius: BorderRadius.circular(20),
-                    ),
+                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.asset(
