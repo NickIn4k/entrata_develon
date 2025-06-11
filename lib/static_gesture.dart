@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'theme/provider_theme.dart';
+
 import 'package:provider/provider.dart';
+import 'package:audioplayers/audioplayers.dart';
+
+import 'theme/provider_theme.dart';
 
 enum Pagina{
   prima,
@@ -65,4 +68,9 @@ class StaticGesture{
   }
 
   static final ValueNotifier<bool> menuFlag = ValueNotifier<bool>(false);
+
+  static Future<void> playSound(String assetPath) async {
+    final player = AudioPlayer();
+    await player.play(AssetSource(assetPath));
+  }
 }

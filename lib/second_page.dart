@@ -33,7 +33,7 @@ class SecondaPagina extends StatefulWidget {
 // _SecondaPaginaState è una classe privata ( _ ), estende la classe State<SecondaPagina> cioè gestisce lo stato della seconda pagina
 class _SecondaPaginaState extends State<SecondaPagina> {
   // Distanza massima ( in metri )
-  final double max = 1000000;
+  final double max = 10000000;
 
   // Contiene la posizione GPS attuale dell'utente
   Position? currentPosition;
@@ -287,10 +287,12 @@ class _SecondaPaginaState extends State<SecondaPagina> {
       portaAperta = true;
     });
 
+    await StaticGesture.playSound('sounds/porta_aperta.mp3');
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-            'Porta Aperta', 
+            'Porta Aperta',
             style: TextStyle(color: Colors.white),
             textAlign: TextAlign.center,
         ),
@@ -312,6 +314,8 @@ class _SecondaPaginaState extends State<SecondaPagina> {
       portaAperta = false;
     });
 
+    await StaticGesture.playSound('sounds/porta_chiusa.wav');
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
@@ -328,10 +332,9 @@ class _SecondaPaginaState extends State<SecondaPagina> {
 
   @override
   Widget build(BuildContext context) {
-    bool isWithinRange = distanceFromDoor != null &&
-        distanceFromDoor! >= 0 &&
-        distanceFromDoor! <= max;
-
+    
+    bool isWithinRange = (distanceFromDoor ?? -1) >= 0 && (distanceFromDoor ?? -1) <= max;
+    
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -349,6 +352,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                 fit: BoxFit.cover,
               ),
             ),
+
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -401,21 +405,21 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                           ),
                   ),
                 ),
-                if (gpsAttivo && distanceFromDoor != null && distanceFromDoor! > max)
-                  Container(
-                    color: Colors.redAccent,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                    width: double.infinity,
-                    child: Text(
-                      'Devi avvicinarti al punto! (${distanceFromDoor!.toStringAsFixed(2)} m)',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                // if (gpsAttivo && distanceFromDoor != null && distanceFromDoor! > max)
+                //   Container(
+                //     color: Colors.redAccent,
+                //     padding:
+                //         const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                //     width: double.infinity,
+                //     child: Text(
+                //       'Devi avvicinarti al punto! (${distanceFromDoor!.toStringAsFixed(2)} m)',
+                //       style: const TextStyle(
+                //         color: Colors.white,
+                //         fontSize: 16,
+                //       ),
+                //       textAlign: TextAlign.center,
+                //     ),
+                //   ),
               ],
             ),
             Positioned(
@@ -461,14 +465,13 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                                 },
                               ),
                               IconButton(
-                                icon: Icon(Icons.logout,
-                                    color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
-                                    size: 35),
+                                icon: Icon(Icons.logout, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
                                 onPressed: () async {
                                   await FirebaseAuth.instance.signOut();
                                   await GoogleSignIn().signOut();
 
                                   if (!mounted) return;
+                                  await StaticGesture.playSound('sounds/porta_chiusa.wav');
                                   StaticGesture.showAppSnackBar(context, 'Logout effettuato');
 
                                   Navigator.of(context).pushReplacement(
@@ -540,7 +543,56 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                   ),
                 ),
               ),
-            )
+            ),
+
+
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: (gpsAttivo && distanceFromDoor != null && distanceFromDoor! > max) ? 1.0 : 0.0,
+                child: IgnorePointer(
+                  ignoring: !(gpsAttivo && distanceFromDoor != null && distanceFromDoor! > max),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.location_off, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Sei troppo lontano (${distanceFromDoor!.toStringAsFixed(1)} m)',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+
+
           ],
         ),
       ),

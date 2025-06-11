@@ -41,8 +41,8 @@ class _AccountPageState extends State<AccountPage> {
             image: AssetImage(
               StaticGesture.getPath(
                 context,
-                'assets/background/Background.jpg',
-                'assets/background/DarkBackground.png',
+                'assets/background/Background3.jpeg',
+                'assets/background/DarkBackground3.jpeg',
               ),
             ),
             fit: BoxFit.cover,
@@ -113,6 +113,7 @@ class _AccountPageState extends State<AccountPage> {
                         await GoogleSignIn().signOut();
 
                         if (!mounted) return;
+                        await StaticGesture.playSound('sounds/porta_chiusa.wav');
                         StaticGesture.showAppSnackBar(context, 'Logout effettuato');
 
                         Navigator.of(context).pushReplacement(
@@ -175,20 +176,12 @@ class _AccountPageState extends State<AccountPage> {
                               ),
                               IconButton(
                                 icon: Icon(
-                                  Icons.logout,
+                                  Icons.door_front_door,
                                   color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
                                   size: 35,
                                 ),
                                 onPressed: () async {
-                                  await FirebaseAuth.instance.signOut();
-                                  await GoogleSignIn().signOut();
-
-                                  if (!mounted) return;
-                                  StaticGesture.showAppSnackBar(context, 'Logout effettuato');
-
-                                  Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(builder: (_) => const MyHomePage(title: 'login')),
-                                  );
+                                  Navigator.of(context).pop();
                                 },
                               ),
                             ],

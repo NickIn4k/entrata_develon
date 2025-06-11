@@ -43,6 +43,7 @@ dependencies:
   slide_to_act: ^2.0.0
   flutter_launcher_icons: "^0.14.3"
   app_settings: ^6.1.1
+  audioplayers: ^6.4.0
 
 dev_dependencies:
   flutter_test:
@@ -77,6 +78,8 @@ flutter:
      - assets/background/DarkBackground.png
      - assets/background/Background2.jpg
      - assets/background/DarkBackground2.png
+     - assets/background/Background3.jpeg
+     - assets/background/DarkBackground3.jpeg
 
   # Logo
      - assets/logo/logoDevelonI.png
@@ -85,6 +88,11 @@ flutter:
      - assets/logo/logoDevelon.png
      - assets/logo/BuildingIcon.png
      - assets/logo/app_logo.png
+
+  # Sound effects
+     - assets/sounds/messaggio_errore.mp3
+     - assets/sounds/porta_aperta.mp3
+     - assets/sounds/porta_chiusa.wav
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
