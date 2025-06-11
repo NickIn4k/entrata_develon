@@ -54,7 +54,7 @@ class MyApp extends StatelessWidget {
       themeMode: StaticGesture.getThemeMode(context),
       home: user != null 
         ? SecondaPagina() 
-        : MyHomePage(title: 'Login'),
+        : const MyHomePage(title: 'Login'),
     );
   }
 }
@@ -164,8 +164,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         onPressed: () async {
                           bool successo = await signInWithGoogle();
                           if (successo) {
-                            navigatorKey.currentState?.push(
-                              MaterialPageRoute(builder: (_) => const SecondaPagina()),
+                            navigatorKey.currentState?.pushReplacement(
+                              MaterialPageRoute(builder: (_) => SecondaPagina()),
                             );
                           }
                         },
