@@ -28,13 +28,29 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-     User? user = FirebaseAuth.instance.currentUser;
+    User? user = FirebaseAuth.instance.currentUser;
 
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
-      theme: lightMode,   // ?
-      darkTheme: darkMode,  // ?
+      theme: lightMode.copyWith(
+        snackBarTheme: SnackBarThemeData(
+          behavior: SnackBarBehavior.floating, 
+          contentTextStyle: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      darkTheme: darkMode.copyWith(
+        snackBarTheme: SnackBarThemeData(
+          behavior: SnackBarBehavior.floating, 
+          contentTextStyle: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       themeMode: StaticGesture.getThemeMode(context),
       home: user != null ? const SecondaPagina() : const MyHomePage(title: 'Login'),
     );

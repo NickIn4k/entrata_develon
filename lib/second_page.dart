@@ -17,7 +17,7 @@ class SecondaPagina extends StatefulWidget {
 }
 
 class _SecondaPaginaState extends State<SecondaPagina> {
-  final double max = 100;
+  final double max = 100000;
 
   Position? currentPosition;
   double? distanceFromDoor;
@@ -120,7 +120,11 @@ class _SecondaPaginaState extends State<SecondaPagina> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Porta Aperta'),
+        content: Text(
+            'Porta Aperta', 
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+        ),
         backgroundColor: Colors.green,
         duration: Duration(seconds: 3),
       ),
@@ -141,9 +145,13 @@ class _SecondaPaginaState extends State<SecondaPagina> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Porta Chiusa'),
+        content: Text(
+          'Porta Chiusa',
+          style: TextStyle(color: Colors.white),
+          textAlign: TextAlign.center,
+        ),
         backgroundColor: Colors.red,
-        duration: Duration(seconds: 3),
+        duration: Duration(seconds: 3)
       ),
     );
     return;

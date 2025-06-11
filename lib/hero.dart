@@ -32,52 +32,54 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
               ),
             ),
           ),
-          // contenuto centrale
 
           Center(
-            child: Hero(
-              tag: 'logo-hero',
-              child: Container(
+            child: IntrinsicHeight(
+              child: Container (
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: StaticGesture.getContainerColor(context),
-                  borderRadius: BorderRadius.circular(32),
+                  decoration: BoxDecoration(
+                    color: StaticGesture.getContainerColor(context),
+                    borderRadius: BorderRadius.circular(32),
+                  ),
+                child: Column(
+                  children: [
+                    Hero(
+                      tag: 'logo-hero',
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
+                          width: 200,
+                          height: 200,
+                        ),
+                      ),
+                    ),
+                    Hero(
+                      tag: 'text-hero',
+                      child: Text(
+                        "PCTO 2025",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 45,
+                          fontWeight: FontWeight.bold,
+                          color: StaticGesture.getTextColor(context, Colors.white, Colors.black87),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Hero(
+                      tag: 'text-hero',
+                        child: Text(
+                        "Carlassara Pietro e Creazzo Nicola",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: StaticGesture.getTextColor( context, Colors.white, Colors.black87),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: SingleChildScrollView(
-                  child: SafeArea(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
-                            width: 200,
-                            height: 200,
-                          ),
-                        ),
-                        Text(
-                          "PCTO 2025",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 45,
-                            fontWeight: FontWeight.bold,
-                            color: StaticGesture.getTextColor(context, Colors.white, Colors.black87),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          "Carlassara Pietro e Creazzo Nicola",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: StaticGesture.getTextColor( context, Colors.white, Colors.black87),
-                          ),
-                        ),
-                      ],
-                    ),  
-                  )
-                )
               ),
             ),
           ),
@@ -149,19 +151,6 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                               ),
                               onPressed: () {
                                 StaticGesture.changeTheme(context);
-                              },
-                            ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.logout,
-                                color: StaticGesture.getTextColor(
-                                  context, Colors.white, Colors.black),
-                                size: 35,
-                              ),
-                              onPressed: () async {
-                                await FirebaseAuth.instance.signOut();
-                                await GoogleSignIn().signOut();
-                                StaticGesture.showAppSnackBar(context, 'Logout effettuato');
                               },
                             ),
                           ],

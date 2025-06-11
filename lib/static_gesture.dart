@@ -20,9 +20,10 @@ class StaticGesture{
           style: TextStyle(
             color: isDarkMode ? Colors.white : Colors.black,
           ),
+          textAlign: TextAlign.center,
         ),
         backgroundColor: isDarkMode ?Colors.black : Colors.white,
-        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 3),
       ),
     );
   }
