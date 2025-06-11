@@ -1,95 +1,186 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:app_settings/app_settings.dart';
 import 'package:slide_to_act/slide_to_act.dart';
 import 'package:provider/provider.dart';
+
+// FILE LOCALI
 import 'theme/provider_theme.dart';
 import 'static_gesture.dart';
 import 'hero.dart';
 import 'main.dart';
 
+// SecondaPagina è un widget a stato variabile
 class SecondaPagina extends StatefulWidget {
+  // Costruttore
+  // super.key, scorciatoia per passare la key al widget genitore
+  // ( la key serve per identificare in modo univoco il widget )
   const SecondaPagina({super.key});
 
   @override
+  // Il metodo restituisce una classe ( _SecondaPagina ) che gestisce lo stato di seconda pagina
+  // State<SecondaPagina>, tipo di oggetto che ritorna ( uno stato per SecondaPagina )
   State<SecondaPagina> createState() => _SecondaPaginaState();
 }
 
+// _SecondaPaginaState è una classe privata ( _ ), estende la classe State<SecondaPagina> cioè gestisce lo stato della seconda pagina
 class _SecondaPaginaState extends State<SecondaPagina> {
+  // Distanza massima ( in metri )
   final double max = 100000;
 
+  // Contiene la posizione GPS attuale dell'utente
   Position? currentPosition;
+  // Contiene la distanza calcolata tra l'utente e la porta
   double? distanceFromDoor;
+
+  // Indica se un operazione in corso
   bool isLoading = false;
+  // Se la porta è aperta o chiusa
   bool portaAperta = false;
   bool gpsAttivo = true;
+  // Menu a tendina
+  bool isOpen = false;
 
+  // Latidudine e longitudine della porta
   final double doorLatitude = 45.5149300;
   final double doorLongitude = 11.4880930;
 
+  // Metodo chiamato alla creazione del widget, quando la schermata viene creata
   @override
   void initState() {
+    // Chiama il comportamento base della superclasse ( super: superclasse )
     super.initState();
+
+    isOpen = StaticGesture.menuFlag.value;
+
+    StaticGesture.menuFlag.addListener(onFlagChanged);
+    
+    // Controlla se il GPS è attivo o disattivato
     ascoltaStatoGps();
+    // Inizia ad ascoltare la posizione GPS in tempo reale
     locationUpdates();
+    
   }
 
+  void onFlagChanged() {
+    setState(() {
+      isOpen = StaticGesture.menuFlag.value;
+    });
+  }
+
+  // Metodo che ascolta lo stato del GPS ( attivato/disattivato )
   void ascoltaStatoGps() {
+    // Quando lo stato del servizio GPS cambia aggiorna la variabile gpsAttivo
+    // GPS attivo: ServiceStatus.enabled
+    // GPS disattivato: ServiceStatus.disabled
+
     Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
+      // Notifica Flutter che il widget deve essere aggiornato
+      // Richiama il metodo build() del widget
       setState(() {
         gpsAttivo = status == ServiceStatus.enabled;
       });
     });
 
+    // Controllo iniziale, all'avvio ( viene quindi eseguita una sola volta )
     Geolocator.isLocationServiceEnabled().then((enabled) {
+      // Notifica Flutter che il widget deve essere aggiornato
+      // Richiama il metodo build() del widget
       setState(() {
         gpsAttivo = enabled;
       });
     });
   }
 
+  // Metodo per mostrare il messaggio di errore, per il GPS
   Future<void> mostraDialogErrore(String messaggio) async {
+    // Funzione per mostrare un dialogo modale
+    // Flutter costruisce un nuovo widget sopra l'interfaccia utente
+    // Blocca l'interazione con la UI, finche l'utente non chiude il dialogo 
     await showDialog(
+      // context serve a Flutter per sapere dove mostrare il dialogo ( in quale parte dell'app )
       context: context,
+      // builder: Funzione che costruisce il contenuto del dialogo
       builder: (_) => AlertDialog(
         title: const Text('Errore GPS'),
         content: Text(messaggio),
+        // actions è una lista di pulsanti in basso nel popup
         actions: [
           TextButton(
-            child: const Text('OK'),
-            onPressed: () => Navigator.of(context).pop(),
-          )
+            child: const Text('Attiva'),
+            onPressed: () {
+              // Per aprire la pagina di impostazioni GPS del dispositivo
+              AppSettings.openAppSettings(type: AppSettingsType.location);
+              // Chiudo il dialogo
+              Navigator.of(context).pop();
+            }
+          ),
+          TextButton(
+            child: const Text("Nega"),
+            onPressed: () {
+                // Chiudo il dialogo
+                Navigator.of(context).pop();
+                // Chiudo l'applicazione
+                SystemNavigator.pop();
+              },
+          ),
         ],
       ),
     );
   }
 
+  // Metodo asincrono che gestisce gli aggiornamenti della posizione GPS
   Future<void> locationUpdates() async {
+
+    // SERVIZIO
+    // Controlla se il servizio GPS è attivo
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    // Se il GPS è disattivato
     if (!serviceEnabled) {
+      // Aggiorna lo stato della varibile gpsAttivo
       setState(() => gpsAttivo = false);
+      // Mostra il messaggio di errore con un dialogo
       mostraDialogErrore('Attiva la geolocalizzazione per usare l\'app.');
+
       return;
     }
 
+    // PERMESSI
+    // Controlla i permessi dell'app per accedere alla posizione
     LocationPermission permesso = await Geolocator.checkPermission();
+    // Verifica che i permessi di localizzazione sono stati concessi
     if (permesso == LocationPermission.denied) {
+      // Se i permessi sono negati allora chiede di nuovo il permesso ( requestPermission )
       permesso = await Geolocator.requestPermission();
+      // Se il permesso viene ancora negato
       if (permesso == LocationPermission.denied) {
         mostraDialogErrore('Permessi di geolocalizzazione negati.');
+        // Chiudo l'applicazione
+        SystemNavigator.pop();
+
         return;
       }
     }
 
+    // Se il permesso viene negato permanentemente
     if (permesso == LocationPermission.deniedForever) {
       mostraDialogErrore('Permessi di geolocalizzazione negati in modo permanente.');
+      // Chiudo l'applicazione
+      SystemNavigator.pop();
+
       return;
     }
 
+    // Ascolta la posizione in tempo reale
+    // getPositionStream, riceve aggiornamenti continui della posizione
     Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
+        // Massiam precizione
         accuracy: LocationAccuracy.bestForNavigation,
+        // L'evento si attiva ogni volta che ti
         distanceFilter: 1,
       ),
     ).listen((Position position) {
@@ -163,185 +254,239 @@ class _SecondaPaginaState extends State<SecondaPagina> {
         distanceFromDoor! >= 0 &&
         distanceFromDoor! <= max;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Image.asset(
-              StaticGesture.getPath(context, 'assets/background/Background2.jpg', 'assets/background/DarkBackground2.png'),
-              fit: BoxFit.cover,
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: Stack(
+          children: [
+            ValueListenableBuilder<bool>(
+              valueListenable: StaticGesture.menuFlag,
+              builder: (context, value, child) {
+                return SizedBox.shrink();
+              },
             ),
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Center(
-                  child: isLoading || currentPosition == null
-                      ? const CircularProgressIndicator()
-                      : Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: AbsorbPointer(
-                            absorbing: !isWithinRange || !gpsAttivo,
-                            child: Opacity(
-                              opacity: (!isWithinRange || !gpsAttivo) ? 0.5 : 1.0,
-                              child: SlideAction(
-                                borderRadius: 50,
-                                elevation: 4,
-                                innerColor: portaAperta 
-                                ? StaticGesture.getIconColor(context, Colors.red, const Color.fromARGB(255, 150, 11, 1))
-                                : StaticGesture.getIconColor(context, Colors.lightBlue, const Color.fromARGB(255, 9, 103, 226)),
-                                outerColor: StaticGesture.getContainerColor(context),
-                                sliderButtonIcon: Transform(
-                                  alignment: Alignment.center,
-                                  transform: portaAperta
-                                      ? Matrix4.rotationY(3.14159)
-                                      : Matrix4.identity(),
-                                  child: Icon(portaAperta? Icons.lock : Icons.lock_open, color: Colors.white),
+            Positioned.fill(
+              child: Image.asset(
+                StaticGesture.getPath(context, 'assets/background/Background2.jpg', 'assets/background/DarkBackground2.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Center(
+                    child: isLoading || currentPosition == null
+                        ? const CircularProgressIndicator()
+                        : Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: AbsorbPointer(
+                              absorbing: !isWithinRange || !gpsAttivo,
+                              child: Opacity(
+                                opacity: (!isWithinRange || !gpsAttivo) ? 0.5 : 1.0,
+                                child: SlideAction(
+                                  borderRadius: 50,
+                                  elevation: 4,
+                                  innerColor: portaAperta 
+                                  ? StaticGesture.getIconColor(context, Colors.red, const Color.fromARGB(255, 150, 11, 1))
+                                  : StaticGesture.getIconColor(context, Colors.lightBlue, const Color.fromARGB(255, 9, 103, 226)),
+                                  outerColor: StaticGesture.getContainerColor(context),
+                                  sliderButtonIcon: Transform(
+                                    alignment: Alignment.center,
+                                    transform: portaAperta
+                                        ? Matrix4.rotationY(3.14159)
+                                        : Matrix4.identity(),
+                                    child: Icon(portaAperta? Icons.lock : Icons.lock_open, color: Colors.white),
+                                  ),
+                                  alignment: portaAperta ? Alignment.center : Alignment.center,
+                                  text: portaAperta ? 'Scorri per chiudere' : 'Scorri per aprire',
+                                  textStyle: TextStyle(
+                                    color: StaticGesture.getTextColor(context, Colors.white, Colors.black), 
+                                    fontSize: 20,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  onSubmit: () {
+                                    if (portaAperta) {
+                                      chiudiPorta();
+                                    } else {
+                                      apriPorta();
+                                    }
+                                  },
                                 ),
-                                alignment: portaAperta ? Alignment.center : Alignment.center,
-                                text: portaAperta ? 'Scorri per chiudere' : 'Scorri per aprire',
-                                textStyle: TextStyle(
-                                  color: StaticGesture.getTextColor(context, Colors.white, Colors.black), 
-                                  fontSize: 20,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                                onSubmit: () {
-                                  if (portaAperta) {
-                                    chiudiPorta();
-                                  } else {
-                                    apriPorta();
-                                  }
-                                },
                               ),
                             ),
                           ),
-                        ),
+                  ),
                 ),
-              ),
-              if (!gpsAttivo)
-                Container(
-                  color: Colors.redAccent,
-                  padding: const EdgeInsets.all(12),
-                  width: double.infinity,
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.warning_amber_rounded, color: Colors.white),
-                      SizedBox(width: 8),
-                      Text(
-                        'Attiva la geolocalizzazione!',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                if (!gpsAttivo)
+                  Container(
+                    color: Colors.redAccent,
+                    padding: const EdgeInsets.all(12),
+                    width: double.infinity,
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text(
+                          'Attiva la geolocalizzazione!',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
+                      ],
+                    ),
+                  ),
+                if (gpsAttivo && distanceFromDoor != null && distanceFromDoor! > max)
+                  Container(
+                    color: Colors.redAccent,
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                    width: double.infinity,
+                    child: Text(
+                      'Devi avvicinarti al punto! (${distanceFromDoor!.toStringAsFixed(2)} m)',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+              ],
+            ),
+            Positioned(
+              top: 40,
+              left: 16,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(100),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: StaticGesture.getContainerColor(context),
+                    borderRadius: BorderRadius.circular(isOpen ? 20 : 100),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0x80000000),
+                        blurRadius: 8,
+                        offset: const Offset(2, 4),
                       ),
                     ],
                   ),
-                ),
-              if (gpsAttivo && distanceFromDoor != null && distanceFromDoor! > max)
-                Container(
-                  color: Colors.redAccent,
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                  width: double.infinity,
-                  child: Text(
-                    'Devi avvicinarti al punto! (${distanceFromDoor!.toStringAsFixed(2)} m)',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-            ],
-          ),
-          Positioned(
-            top: 40,
-            left: 16,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  icon:
-                      Icon(Icons.settings, color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
-                  onPressed: () {
-                    setState(() => StaticGesture.showMenu = !StaticGesture.showMenu);
-                  },
-                ),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 500),
-                  child: StaticGesture.showMenu
-                      ? Row(
-                          key: const ValueKey('menu'),
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                Provider.of<ThemeProvider>(context).isDarkMode
-                                    ? Icons.dark_mode
-                                    : Icons.light_mode,
-                                color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
-                                size: 35,
+                  child: AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    alignment: Alignment.centerLeft, // fondamentale: si apre da sinistra
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.settings,
+                              color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
+                          onPressed: () {
+                            setState(() {
+                              StaticGesture.menuFlag.value = !StaticGesture.menuFlag.value;
+                            });
+                          },
+                        ),
+                        if (isOpen)
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  StaticGesture.getIconTheme(context),
+                                  color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
+                                  size: 35,
+                                ),
+                                onPressed: () {
+                                  Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+                                },
                               ),
-                              onPressed: () {
-                                Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
-                              },
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.logout, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
-                              onPressed: () async {
-                                await FirebaseAuth.instance.signOut();
-                                await GoogleSignIn().signOut();
-                                
-                                if(!mounted) return;
-                                StaticGesture.showAppSnackBar(context, 'Logout effettuato');
+                              IconButton(
+                                icon: Icon(Icons.logout,
+                                    color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
+                                    size: 35),
+                                onPressed: () async {
+                                  await FirebaseAuth.instance.signOut();
+                                  await GoogleSignIn().signOut();
 
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(builder: (_) => MyHomePage(title: 'login')),
-                                );
-                              },
-                            ),
-                          ],
-                        )
-                      : SizedBox.shrink(),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => HeroDetailPage(pagina: Pagina.seconda)),
-                );
-              },
-              child: Hero(
-                tag: 'logo-hero',
-                child: Container(
-                  height: 92,
-                  width: 92,
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: StaticGesture.getTextColor(context, Colors.black54, Colors.white70),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
-                      width: 90,
-                      height: 90,
-                      fit: BoxFit.contain,
+                                  if (!mounted) return;
+                                  StaticGesture.showAppSnackBar(context, 'Logout effettuato');
+
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(builder: (_) => MyHomePage(title: 'login')),
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.person, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
+                                onPressed: () {
+                                  
+                                },
+                              ),
+                            ],
+                          ),
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => HeroDetailPage(pagina: Pagina.seconda)),
+                  );
+                },
+                child: Hero(
+                  tag: 'logo-hero',
+                  child: Container(
+                    height: 92,
+                    width: 92,
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: StaticGesture.getTextColor(context, Colors.black54, Colors.white70),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
+                        width: 90,
+                        height: 90,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 25,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  "Entrata",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontStyle: FontStyle.italic,
+                    fontWeight: FontWeight.bold,
+                    color: StaticGesture.getTextColor( context, Colors.white, Colors.black87),
+                  ),
+                ),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }

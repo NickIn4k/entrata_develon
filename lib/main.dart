@@ -67,12 +67,32 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  bool isOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    isOpen = StaticGesture.menuFlag.value;
+    StaticGesture.menuFlag.addListener(onFlagChanged);
+  }
+
+  void onFlagChanged() {
+    setState(() {
+      isOpen = StaticGesture.menuFlag.value;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
+          ValueListenableBuilder<bool>(
+              valueListenable: StaticGesture.menuFlag,
+              builder: (context, value, child) {
+                return SizedBox.shrink();
+              },
+          ),
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -184,13 +204,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   icon: Icon(Icons.settings, color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
                   onPressed: () {
                     setState(() {
-                      StaticGesture.showMenu = !StaticGesture.showMenu;
+                      StaticGesture.menuFlag.value = !StaticGesture.menuFlag.value;
                     });
                   },
                 ),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
-                  child: StaticGesture.showMenu
+                  child: isOpen
                       ? Row(
                           key: const ValueKey('menu'),
                           children: [

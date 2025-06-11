@@ -64,5 +64,5 @@ class StaticGesture{
     return Provider.of<ThemeProvider>(context).isDarkMode? darkColor : brightColor;
   }
 
-  static bool showMenu = false;
+  static final ValueNotifier<bool> menuFlag = ValueNotifier<bool>(false);
 }
