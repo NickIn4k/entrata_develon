@@ -33,12 +33,12 @@ class SecondaPagina extends StatefulWidget {
 // _SecondaPaginaState è una classe privata ( _ ), estende la classe State<SecondaPagina> cioè gestisce lo stato della seconda pagina
 class _SecondaPaginaState extends State<SecondaPagina> {
   // Distanza massima ( in metri )
-  final double max = 10000000;
+  final double max = 10000;
 
   // Contiene la posizione GPS attuale dell'utente
   Position? currentPosition;
   // Contiene la distanza calcolata tra l'utente e la porta
-  double? distanceFromDoor;
+  double? distanceFromDoor = -1;
 
   // Indica se un operazione in corso
   bool isLoading = false;
@@ -332,7 +332,6 @@ class _SecondaPaginaState extends State<SecondaPagina> {
 
   @override
   Widget build(BuildContext context) {
-    
     bool isWithinRange = (distanceFromDoor ?? -1) >= 0 && (distanceFromDoor ?? -1) <= max;
     
     return PopScope(
