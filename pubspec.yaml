@@ -45,6 +45,9 @@ dependencies:
   app_settings: ^6.1.1
   audioplayers: ^6.4.0
   url_launcher: ^6.2.5
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:

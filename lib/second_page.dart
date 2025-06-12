@@ -51,7 +51,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
 
   bool isDialogVisible = false;
 
-  Timer? _gpsRetryTimer;
+  // Timer? _gpsRetryTimer;
 
   // Latidudine e longitudine della porta
   final double doorLatitude = 45.5149300;
@@ -87,7 +87,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
   @override
   void dispose() {
     positionStream?.cancel();
-    _cancelGpsRetryTimer();
+    //_cancelGpsRetryTimer();
     StaticGesture.menuFlag.removeListener(onFlagChanged);
     super.dispose();
   }
@@ -118,7 +118,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
               // Chiudo il dialogo
               Navigator.of(context).pop();
               // Fermo il timer
-              _cancelGpsRetryTimer(); 
+              // _cancelGpsRetryTimer();
               isDialogVisible = false;
 
               // Per aprire la pagina di impostazioni GPS del dispositivo
@@ -132,7 +132,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                 bool gps = await Geolocator.isLocationServiceEnabled();
                 if (!gps && mounted) {
                   // Avvia il timer
-                  _startGpsRetryTimer(); 
+                  // _startGpsRetryTimer(); 
                   // Mostra di nuovo il popup se GPS è ancora spento
                   await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
                 }
@@ -190,54 +190,54 @@ class _SecondaPaginaState extends State<SecondaPagina> {
   }
 
 
-  // // Metodo che ascolta lo stato del GPS ( attivato/disattivato )
-  // void ascoltaStatoGps() {
-  //   // Quando lo stato del servizio GPS cambia aggiorna la variabile gpsAttivo
-  //   // GPS attivo: ServiceStatus.enabled
-  //   // GPS disattivato: ServiceStatus.disabled
+  // Metodo che ascolta lo stato del GPS ( attivato/disattivato )
+  void ascoltaStatoGps() {
+    // Quando lo stato del servizio GPS cambia aggiorna la variabile gpsAttivo
+    // GPS attivo: ServiceStatus.enabled
+    // GPS disattivato: ServiceStatus.disabled
 
-  //   Geolocator.getServiceStatusStream().listen((ServiceStatus status) async {
-  //     // Notifica Flutter che il widget deve essere aggiornato
-  //     // Richiama il metodo build() del widget
-  //     setState(() {
-  //       gpsAttivo = status == ServiceStatus.enabled;
-  //     });
+    Geolocator.getServiceStatusStream().listen((ServiceStatus status) async {
+      // Notifica Flutter che il widget deve essere aggiornato
+      // Richiama il metodo build() del widget
+      setState(() {
+        gpsAttivo = status == ServiceStatus.enabled;
+      });
 
-  //     // if(!gpsAttivo){
-  //     //   mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
-  //     // }
-  //     if (!gpsAttivo) {
-  //       Future.delayed(Duration(milliseconds: 300), () async {
-  //         bool check = await Geolocator.isLocationServiceEnabled();
-  //         if (!check) {
-  //           await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
-  //         }
-  //       });
-  //     }
-  //   });
+      // if(!gpsAttivo){
+      //   mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+      // }
+      if (!gpsAttivo) {
+        Future.delayed(Duration(milliseconds: 300), () async {
+          bool check = await Geolocator.isLocationServiceEnabled();
+          if (!check) {
+            await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+          }
+        });
+      }
+    });
 
-  //   // Controllo iniziale, all'avvio ( viene quindi eseguita una sola volta )
-  //   Geolocator.isLocationServiceEnabled().then((enabled) {
-  //     // Notifica Flutter che il widget deve essere aggiornato
-  //     // Richiama il metodo build() del widget
-  //     setState(() {
-  //       gpsAttivo = enabled;
-  //     });
+    // Controllo iniziale, all'avvio ( viene quindi eseguita una sola volta )
+    Geolocator.isLocationServiceEnabled().then((enabled) {
+      // Notifica Flutter che il widget deve essere aggiornato
+      // Richiama il metodo build() del widget
+      setState(() {
+        gpsAttivo = enabled;
+      });
 
-  //     // if(!gpsAttivo){
-  //     //    mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
-  //     // }
+      // if(!gpsAttivo){
+      //    mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+      // }
 
-  //     if (!gpsAttivo) {
-  //       Future.delayed(Duration(milliseconds: 300), () async {
-  //         bool check = await Geolocator.isLocationServiceEnabled();
-  //         if (!check) {
-  //           await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
-  //         }
-  //       });
-  //     }
-  //   });
-  // }
+      if (!gpsAttivo) {
+        Future.delayed(Duration(milliseconds: 300), () async {
+          bool check = await Geolocator.isLocationServiceEnabled();
+          if (!check) {
+            await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+          }
+        });
+      }
+    });
+  }
 
 
 //   void ascoltaStatoGps() {
@@ -265,49 +265,56 @@ class _SecondaPaginaState extends State<SecondaPagina> {
 // }
 
 
-void _startGpsRetryTimer() {
-  if (_gpsRetryTimer != null && _gpsRetryTimer!.isActive) return;
+// void _startGpsRetryTimer() {
+//   if (_gpsRetryTimer != null && _gpsRetryTimer!.isActive) return;
 
-  _gpsRetryTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
-    bool gpsEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!gpsEnabled && !isDialogVisible && mounted) {
-      await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
-    } else if (gpsEnabled) {
-      setState(() => gpsAttivo = true);
-      _cancelGpsRetryTimer();
-    }
-  });
-}
+//   _gpsRetryTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+//     bool gpsEnabled = await Geolocator.isLocationServiceEnabled();
+//     if (!gpsEnabled && !isDialogVisible && mounted) {
+//       await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+//     } else if (gpsEnabled) {
+//       setState(() => gpsAttivo = true);
+//       _cancelGpsRetryTimer();
+//     }
+//   });
+// }
 
-void _cancelGpsRetryTimer() {
-  _gpsRetryTimer?.cancel();
-  _gpsRetryTimer = null;
-}
+// void _cancelGpsRetryTimer() {
+//   _gpsRetryTimer?.cancel();
+//   _gpsRetryTimer = null;
+// }
 
-void ascoltaStatoGps() {
-  Geolocator.getServiceStatusStream().listen((ServiceStatus status) async {
-    if (status == ServiceStatus.disabled) {
-      _startGpsRetryTimer();
-    } else if (status == ServiceStatus.enabled) {
-      _cancelGpsRetryTimer();
-      setState(() => gpsAttivo = true);
-    }
-  });
+// void ascoltaStatoGps() {
+//   Geolocator.getServiceStatusStream().listen((ServiceStatus status) async {
+//     if (status == ServiceStatus.disabled) {
+//       _startGpsRetryTimer();
+//     } else if (status == ServiceStatus.enabled) {
+//       _cancelGpsRetryTimer();
+//       setState(() => gpsAttivo = true);
+//     }
+//   });
 
-  // Check iniziale
-  Geolocator.isLocationServiceEnabled().then((enabled) {
-    if (!enabled) {
-      _startGpsRetryTimer();
-    } else {
-      _cancelGpsRetryTimer();
-      setState(() => gpsAttivo = true);
-    }
-  });
-}
+//   // Check iniziale
+//   Geolocator.isLocationServiceEnabled().then((enabled) {
+//     if (!enabled) {
+//       _startGpsRetryTimer();
+//     } else {
+//       _cancelGpsRetryTimer();
+//       setState(() => gpsAttivo = true);
+//     }
+//   });
+// }
 
 
   // Metodo asincrono che gestisce gli aggiornamenti della posizione GPS
   Future<void> locationUpdates() async {
+
+    bool gpsEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!gpsEnabled) {
+      // Mostra il tuo dialogo personalizzato
+      await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+      return;
+    }
 
     // PERMESSI
     // Controlla i permessi dell'app per accedere alla posizione
