@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+
 import 'theme/theme.dart';
 import 'theme/provider_theme.dart';
 import 'package:provider/provider.dart';
@@ -70,6 +71,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   bool isOpen = false;
+  // finalFlutterLocalization _loc = FlutterLocalization.instance;
 
   @override
   void initState() {
@@ -244,6 +246,16 @@ class _MyHomePageState extends State<MyHomePage> {
                                   ),
                                   onPressed: () {
                                     Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+                                  },
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.translate,
+                                    color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
+                                    size: 35,
+                                  ),
+                                  onPressed: () {
+                                    
                                   },
                                 ),
                               ],
