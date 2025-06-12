@@ -184,24 +184,21 @@ class _MyHomePageState extends State<MyHomePage> {
                     MaterialPageRoute(builder: (_) => HeroDetailPage(pagina: Pagina.prima)),
                   );
                 },
-                child: Hero(
-                  tag: 'logo-hero',
-                  child: Container(
-                    height: 92,
-                    width: 92,
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: StaticGesture.getTextColor(context, Colors.black54, Colors.white70),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
-                        width: 90,
-                        height: 90,
-                        fit: BoxFit.contain,
-                      ),
+                child: Container(
+                  height: 92,
+                  width: 92,
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: StaticGesture.getTextColor(context, Colors.black54, Colors.white70),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),

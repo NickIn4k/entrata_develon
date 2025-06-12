@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'static_gesture.dart';
 import 'account.dart';
@@ -35,10 +36,10 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
       body: Stack(
         children: [
           ValueListenableBuilder<bool>(
-              valueListenable: StaticGesture.menuFlag,
-              builder: (context, value, child) {
-                return SizedBox.shrink();
-              },
+            valueListenable: StaticGesture.menuFlag,
+            builder: (context, value, child) {
+              return SizedBox.shrink();
+            },
           ),
           // Sfondo
           Container(
@@ -46,14 +47,13 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
               image: DecorationImage(
                 image: AssetImage(
                   widget.pagina == Pagina.prima 
-                  ? StaticGesture.getPath(context, 'assets/background/Background.jpg', 'assets/background/DarkBackground.png')
-                  : StaticGesture.getPath(context, 'assets/background/Background2.jpg', 'assets/background/DarkBackground2.png')
-                  ),
+                    ? StaticGesture.getPath(context, 'assets/background/Background.jpg', 'assets/background/DarkBackground.png')
+                    : StaticGesture.getPath(context, 'assets/background/Background2.jpg', 'assets/background/DarkBackground2.png')
+                ),
                 fit: BoxFit.cover,
               ),
             ),
           ),
-
           Center(
             child: IntrinsicHeight(
               child: Container (
@@ -64,39 +64,47 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                   ),
                 child: Column(
                   children: [
-                    Hero(
-                      tag: 'logo-hero',
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.asset(
-                          StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
-                          width: 200,
-                          height: 200,
+                    Stack(                     
+                      children: [
+                        GestureDetector(
+                          onTap: () async{
+                            final Uri url = Uri.parse('https://www.develon.com/it/');
+                            if (!await launchUrl(url)) {
+                              throw Exception('Could not launch $url');
+                            }
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.asset(
+                              StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
+                              width: 200,
+                              height: 200,
+                            ),
+                          ),
+                        ),                      
+                        Positioned(
+                          right: 8,
+                          bottom: 8,
+                          child: Icon(Icons.open_in_new, color: StaticGesture.getIconColor(context,Colors.black87, Colors.white)),
                         ),
-                      ),
+                      ]
                     ),
-                    Hero(
-                      tag: 'text-hero',
-                      child: Text(
-                        "PCTO 2025",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 45,
-                          fontWeight: FontWeight.bold,
-                          color: StaticGesture.getTextColor(context, Colors.white, Colors.black87),
-                        ),
+                    Text(
+                      "PCTO 2025",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 45,
+                        fontWeight: FontWeight.bold,
+                        color: StaticGesture.getTextColor(context, Colors.white, Colors.black87),
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Hero(
-                      tag: 'text-hero',
-                        child: Text(
-                        "Carlassara Pietro e Creazzo Nicola",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 20,
-                          color: StaticGesture.getTextColor( context, Colors.white, Colors.black87),
-                        ),
+                    Text(
+                      "Carlassara Pietro e Creazzo Nicola",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        color: StaticGesture.getTextColor( context, Colors.white, Colors.black87),
                       ),
                     ),
                   ],
@@ -104,33 +112,29 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
               ),
             ),
           ),
-          // pulsante di ritorno
           Positioned(
             bottom: 16,
             right: 16,
             child: GestureDetector(
               onTap: () => Navigator.of(context).pop(),
-              child: Hero(
-                tag: 'logo-login',
-                child: Container(
-                  height: 92,
-                  width: 92,
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: StaticGesture.getContainerColor(context),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Center(
-                      child: Image.asset(
-                        widget.pagina == Pagina.prima 
-                        ? 'assets/logo/LogoMigliore.png'
-                        : 'assets/logo/BuildingIcon.png',
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.contain,
-                      ),
+              child: Container(
+                height: 92,
+                width: 92,
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: StaticGesture.getContainerColor(context),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Center(
+                    child: Image.asset(
+                      widget.pagina == Pagina.prima 
+                      ? 'assets/logo/LogoMigliore.png'
+                      : 'assets/logo/BuildingIcon.png',
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),

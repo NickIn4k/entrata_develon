@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 
@@ -7,7 +6,9 @@ import 'theme/provider_theme.dart';
 
 enum Pagina{
   prima,
-  seconda
+  seconda,
+  hero,
+  account
 }
 
 class StaticGesture{

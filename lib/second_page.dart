@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'dart:async';  // ?
 
+import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:geolocator/geolocator.dart';
@@ -33,7 +34,7 @@ class SecondaPagina extends StatefulWidget {
 // _SecondaPaginaState è una classe privata ( _ ), estende la classe State<SecondaPagina> cioè gestisce lo stato della seconda pagina
 class _SecondaPaginaState extends State<SecondaPagina> {
   // Distanza massima ( in metri )
-  final double max = 10000;
+  final double max = 10;
 
   // Contiene la posizione GPS attuale dell'utente
   Position? currentPosition;
@@ -47,6 +48,10 @@ class _SecondaPaginaState extends State<SecondaPagina> {
   bool gpsAttivo = true;
   // Menu a tendina
   bool isOpen = false;
+
+  bool isDialogVisible = false;
+
+  Timer? _gpsRetryTimer;
 
   // Latidudine e longitudine della porta
   final double doorLatitude = 45.5149300;
@@ -82,18 +87,25 @@ class _SecondaPaginaState extends State<SecondaPagina> {
   @override
   void dispose() {
     positionStream?.cancel();
+    _cancelGpsRetryTimer();
     StaticGesture.menuFlag.removeListener(onFlagChanged);
     super.dispose();
   }
 
   // Metodo per mostrare il messaggio di errore, per il GPS ( se è attivo o disattivata la geolocalizzazione )
   Future<void> mostraDialogErroreGPSAD(String messaggio) async {
+
+    if (isDialogVisible) return;
+    isDialogVisible = true;
+
     // Funzione per mostrare un dialogo modale
     // Flutter costruisce un nuovo widget sopra l'interfaccia utente
     // Blocca l'interazione con la UI, finche l'utente non chiude il dialogo 
     await showDialog(
       // context serve a Flutter per sapere dove mostrare il dialogo ( in quale parte dell'app )
       context: context,
+      // Per evitare che l'utente possa uscire accidentalmente
+      barrierDismissible: false,
       // builder: Funzione che costruisce il contenuto del dialogo
       builder: (_) => AlertDialog(
         title: const Text('Errore GPS'),
@@ -102,12 +114,15 @@ class _SecondaPaginaState extends State<SecondaPagina> {
         actions: [
           TextButton(
             child: const Text('Attiva'),
-            onPressed: () {
-              // Per aprire la pagina di impostazioni GPS del dispositivo
-              AppSettings.openAppSettings(type: AppSettingsType.location);
+            onPressed: () async{
               // Chiudo il dialogo
               Navigator.of(context).pop();
+              // Fermo il timer
+              _cancelGpsRetryTimer(); 
+              isDialogVisible = false;
 
+              // Per aprire la pagina di impostazioni GPS del dispositivo
+              await AppSettings.openAppSettings(type: AppSettingsType.location);
 
               // Aspetto 2 secondi e poi ricontrollo se il GPS è attivo
               // Se NON è stata riattivata la geolocalizzazione il popup di errore viene mostrato di nuovo
@@ -115,14 +130,18 @@ class _SecondaPaginaState extends State<SecondaPagina> {
               // Funzione asincrona che verrà eseguita dopo 2 secondi
               () async {
                 bool gps = await Geolocator.isLocationServiceEnabled();
-                if (!gps) {
+                if (!gps && mounted) {
+                  // Avvia il timer
+                  _startGpsRetryTimer(); 
                   // Mostra di nuovo il popup se GPS è ancora spento
-                  mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+                  await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
                 }
-                // Aggiorna lo stato dell'app
-                setState(() {
-                  gpsAttivo = gps;
-                });
+                else if(mounted){
+                  // Aggiorna lo stato dell'app
+                  setState(() {
+                    gpsAttivo = gps;
+                  });
+                }
               });
             },
           ),
@@ -138,6 +157,8 @@ class _SecondaPaginaState extends State<SecondaPagina> {
         ],
       ),
     );
+    
+    isDialogVisible = false;
   }
 
   // Metodo per mostrare il messaggio di errore, per il GPS ( per i permessi )
@@ -169,37 +190,121 @@ class _SecondaPaginaState extends State<SecondaPagina> {
   }
 
 
-  // Metodo che ascolta lo stato del GPS ( attivato/disattivato )
-  void ascoltaStatoGps() {
-    // Quando lo stato del servizio GPS cambia aggiorna la variabile gpsAttivo
-    // GPS attivo: ServiceStatus.enabled
-    // GPS disattivato: ServiceStatus.disabled
+  // // Metodo che ascolta lo stato del GPS ( attivato/disattivato )
+  // void ascoltaStatoGps() {
+  //   // Quando lo stato del servizio GPS cambia aggiorna la variabile gpsAttivo
+  //   // GPS attivo: ServiceStatus.enabled
+  //   // GPS disattivato: ServiceStatus.disabled
 
-    Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
-      // Notifica Flutter che il widget deve essere aggiornato
-      // Richiama il metodo build() del widget
-      setState(() {
-        gpsAttivo = status == ServiceStatus.enabled;
-      });
+  //   Geolocator.getServiceStatusStream().listen((ServiceStatus status) async {
+  //     // Notifica Flutter che il widget deve essere aggiornato
+  //     // Richiama il metodo build() del widget
+  //     setState(() {
+  //       gpsAttivo = status == ServiceStatus.enabled;
+  //     });
 
-      if(!gpsAttivo){
-         mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
-      }
-    });
+  //     // if(!gpsAttivo){
+  //     //   mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+  //     // }
+  //     if (!gpsAttivo) {
+  //       Future.delayed(Duration(milliseconds: 300), () async {
+  //         bool check = await Geolocator.isLocationServiceEnabled();
+  //         if (!check) {
+  //           await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+  //         }
+  //       });
+  //     }
+  //   });
 
-    // Controllo iniziale, all'avvio ( viene quindi eseguita una sola volta )
-    Geolocator.isLocationServiceEnabled().then((enabled) {
-      // Notifica Flutter che il widget deve essere aggiornato
-      // Richiama il metodo build() del widget
-      setState(() {
-        gpsAttivo = enabled;
-      });
+  //   // Controllo iniziale, all'avvio ( viene quindi eseguita una sola volta )
+  //   Geolocator.isLocationServiceEnabled().then((enabled) {
+  //     // Notifica Flutter che il widget deve essere aggiornato
+  //     // Richiama il metodo build() del widget
+  //     setState(() {
+  //       gpsAttivo = enabled;
+  //     });
 
-      if(!gpsAttivo){
-         mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
-      }
-    });
-  }
+  //     // if(!gpsAttivo){
+  //     //    mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+  //     // }
+
+  //     if (!gpsAttivo) {
+  //       Future.delayed(Duration(milliseconds: 300), () async {
+  //         bool check = await Geolocator.isLocationServiceEnabled();
+  //         if (!check) {
+  //           await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+  //         }
+  //       });
+  //     }
+  //   });
+  // }
+
+
+//   void ascoltaStatoGps() {
+//   Geolocator.getServiceStatusStream().listen((ServiceStatus status) async {
+//     if (status == ServiceStatus.disabled && !isDialogVisible) {
+//       // Aspetta 500ms, poi controlla di nuovo se è davvero disattivato
+//       await Future.delayed(const Duration(milliseconds: 500));
+//       bool gpsAncoraSpento = !await Geolocator.isLocationServiceEnabled();
+
+//       if (gpsAncoraSpento && mounted && !isDialogVisible) {
+//         setState(() => gpsAttivo = false);
+//         await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+//       } else {
+//         setState(() => gpsAttivo = true);
+//       }
+//     } else if (status == ServiceStatus.enabled) {
+//       setState(() => gpsAttivo = true);
+//     }
+//   });
+
+//   // Check iniziale
+//   Geolocator.isLocationServiceEnabled().then((enabled) {
+//     setState(() => gpsAttivo = enabled);
+//   });
+// }
+
+
+void _startGpsRetryTimer() {
+  if (_gpsRetryTimer != null && _gpsRetryTimer!.isActive) return;
+
+  _gpsRetryTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+    bool gpsEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!gpsEnabled && !isDialogVisible && mounted) {
+      await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+    } else if (gpsEnabled) {
+      setState(() => gpsAttivo = true);
+      _cancelGpsRetryTimer();
+    }
+  });
+}
+
+void _cancelGpsRetryTimer() {
+  _gpsRetryTimer?.cancel();
+  _gpsRetryTimer = null;
+}
+
+void ascoltaStatoGps() {
+  Geolocator.getServiceStatusStream().listen((ServiceStatus status) async {
+    if (status == ServiceStatus.disabled) {
+      _startGpsRetryTimer();
+    } else if (status == ServiceStatus.enabled) {
+      _cancelGpsRetryTimer();
+      setState(() => gpsAttivo = true);
+    }
+  });
+
+  // Check iniziale
+  Geolocator.isLocationServiceEnabled().then((enabled) {
+    if (!enabled) {
+      _startGpsRetryTimer();
+    } else {
+      _cancelGpsRetryTimer();
+      setState(() => gpsAttivo = true);
+    }
+  });
+}
+
 
   // Metodo asincrono che gestisce gli aggiornamenti della posizione GPS
   Future<void> locationUpdates() async {
@@ -213,7 +318,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
       permesso = await Geolocator.requestPermission();
       // Se il permesso viene ancora negato
       if (permesso == LocationPermission.denied) {
-        mostraDialogErrore('Permessi di geolocalizzazione negati.');
+        await mostraDialogErrore('Permessi di geolocalizzazione negati.');
         // Chiudo l'applicazione
         SystemNavigator.pop();
 
@@ -223,7 +328,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
 
     // Se il permesso viene negato permanentemente
     if (permesso == LocationPermission.deniedForever) {
-      mostraDialogErrore('Permessi di geolocalizzazione negati in modo permanente.');
+      await mostraDialogErrore('Permessi di geolocalizzazione negati in modo permanente.');
       // Chiudo l'applicazione
       SystemNavigator.pop();
 
@@ -246,6 +351,8 @@ class _SecondaPaginaState extends State<SecondaPagina> {
         );
       });
     }
+
+
 
     // Ascolta la posizione in tempo reale
     // getPositionStream, riceve aggiornamenti continui della posizione
@@ -292,9 +399,9 @@ class _SecondaPaginaState extends State<SecondaPagina> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-            'Porta Aperta',
-            style: TextStyle(color: Colors.white),
-            textAlign: TextAlign.center,
+          'Porta Aperta',
+          style: TextStyle(color: Colors.white),
+          textAlign: TextAlign.center,
         ),
         backgroundColor: Colors.green,
         duration: Duration(seconds: 3),
@@ -357,51 +464,45 @@ class _SecondaPaginaState extends State<SecondaPagina> {
               children: [
                 Expanded(
                   child: Center(
-                    // child: isLoading || currentPosition == null
-                        // ? const CircularProgressIndicator()
-                        // : Padding(
-                        child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            // child: AbsorbPointer(
-                            //   absorbing: !isWithinRange || !gpsAttivo,
-                            //   child: Opacity(
-                            //    opacity: (!isWithinRange || !gpsAttivo) ? 0.5 : 1.0,
-                            child: AbsorbPointer(
-                                absorbing: isLoading || currentPosition == null || !isWithinRange || !gpsAttivo,
-                                child: Opacity(
-                                opacity: (isLoading || currentPosition == null || !isWithinRange || !gpsAttivo) ? 0.5 : 1.0,
-                                child: SlideAction(
-                                  borderRadius: 50,
-                                  elevation: 4,
-                                  innerColor: portaAperta 
-                                  ? StaticGesture.getIconColor(context, Colors.red, const Color.fromARGB(255, 150, 11, 1))
-                                  : StaticGesture.getIconColor(context, Colors.lightBlue, const Color.fromARGB(255, 9, 103, 226)),
-                                  outerColor: StaticGesture.getContainerColor(context),
-                                  sliderButtonIcon: Transform(
-                                    alignment: Alignment.center,
-                                    transform: portaAperta
-                                        ? Matrix4.rotationY(3.14159)
-                                        : Matrix4.identity(),
-                                    child: Icon(portaAperta? Icons.lock : Icons.lock_open, color: Colors.white),
-                                  ),
-                                  alignment: portaAperta ? Alignment.center : Alignment.center,
-                                  text: portaAperta ? 'Scorri per chiudere' : 'Scorri per aprire',
-                                  textStyle: TextStyle(
-                                    color: StaticGesture.getTextColor(context, Colors.white, Colors.black), 
-                                    fontSize: 20,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                  onSubmit: () {
-                                    if (portaAperta) {
-                                      chiudiPorta();
-                                    } else {
-                                      apriPorta();
-                                    }
-                                  },
-                                ),
-                              ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: AbsorbPointer(
+                        absorbing: isLoading || currentPosition == null || !isWithinRange || !gpsAttivo,
+                        child: Opacity(
+                          opacity: (isLoading || currentPosition == null || !isWithinRange || !gpsAttivo) ? 0.5 : 1.0,
+                          child: SlideAction(
+                            borderRadius: 50,
+                            elevation: 4,
+                            innerColor: portaAperta 
+                              ? StaticGesture.getIconColor(context, Colors.red, const Color.fromARGB(255, 150, 11, 1))
+                              : StaticGesture.getIconColor(context, Colors.lightBlue, const Color.fromARGB(255, 9, 103, 226)),
+                            outerColor: StaticGesture.getContainerColor(context),
+                            sliderButtonIcon: Transform(
+                              alignment: Alignment.center,
+                              transform: portaAperta
+                                ? Matrix4.rotationY(3.14159)
+                                : Matrix4.identity(),
+                              child: Icon(portaAperta? Icons.lock : Icons.lock_open, color: Colors.white),
                             ),
+                            alignment: portaAperta ? Alignment.center : Alignment.center,
+                            text: portaAperta ? 'Scorri per chiudere' : 'Scorri per aprire',
+                            textStyle: TextStyle(
+                              color: StaticGesture.getTextColor(context, Colors.white, Colors.black), 
+                              fontSize: 20,
+                              fontStyle: FontStyle.italic,
+                            ),
+                            onSubmit: () {
+                              if (portaAperta) {
+                                chiudiPorta();
+                              } else {
+                                apriPorta();
+                              }
+                              return null;
+                            },
                           ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -427,8 +528,7 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         IconButton(
-                          icon: Icon(Icons.settings,
-                              color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
+                          icon: Icon(Icons.settings, color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
                           onPressed: () {
                             setState(() {
                               StaticGesture.menuFlag.value = !StaticGesture.menuFlag.value;
@@ -471,6 +571,15 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                                   );
                                 },
                               ),
+                              IconButton(
+                                icon: Icon(Icons.location_on, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
+                                onPressed: () async {
+                                  final Uri url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$doorLatitude,$doorLongitude');
+                                  if (!await launchUrl(url)) {
+                                    throw Exception('Could not launch $url');
+                                  }
+                                },
+                              )
                             ],
                           ),
                       ],
@@ -487,25 +596,22 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => HeroDetailPage(pagina: Pagina.seconda)),
                   );
-                },
-                child: Hero(
-                  tag: 'logo-hero',
-                  child: Container(
-                    height: 92,
-                    width: 92,
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: StaticGesture.getTextColor(context, Colors.black54, Colors.white70),
-                      borderRadius: BorderRadius.circular(20),
-                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
-                        width: 90,
-                        height: 90,
-                        fit: BoxFit.contain,
-                      ),
+                },               
+                child: Container(
+                  height: 92,
+                  width: 92,
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: StaticGesture.getTextColor(context, Colors.black54, Colors.white70),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      StaticGesture.getPath(context, 'assets/logo/logoDevelon.png','assets/logo/logoDevelonI.png'),
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
@@ -528,8 +634,6 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                 ),
               ),
             ),
-
-
             Positioned(
               bottom: 20,
               left: 20,
@@ -574,9 +678,6 @@ class _SecondaPaginaState extends State<SecondaPagina> {
                 ),
               ),
             ),
-
-
-
           ],
         ),
       ),
