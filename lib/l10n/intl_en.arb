@@ -1,7 +1,0 @@
-{
-  "hello": "Hello",
-  "@hello": {
-    "description": "Simple greeting",
-    "type": "text"
-  }
-}

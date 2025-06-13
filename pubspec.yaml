@@ -45,7 +45,6 @@ dependencies:
   app_settings: ^6.1.1
   audioplayers: ^6.4.0
   url_launcher: ^6.2.5
-  flutter_localization: ^0.3.2
 
 dev_dependencies:
   flutter_test:
@@ -85,16 +84,17 @@ flutter:
 
   # Logo
      - assets/logo/logoDevelonI.png
-     - assets/logo/logoG.png
-     - assets/logo/LogoMigliore.png
+     - assets/logo/LogoGoogle.png
      - assets/logo/logoDevelon.png
      - assets/logo/BuildingIcon.png
      - assets/logo/app_logo.png
 
   # Sound effects
-     - assets/sounds/messaggio_errore.mp3
-     - assets/sounds/porta_aperta.mp3
-     - assets/sounds/porta_chiusa.wav
+     - assets/sounds/logout.mp3
+     - assets/sounds/door_closed.mp3
+     - assets/sounds/door_opened.mp3
+     - assets/sounds/error.mp3
+     
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

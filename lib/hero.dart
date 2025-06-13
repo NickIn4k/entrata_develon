@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+// File locali
 import 'static_gesture.dart';
-import 'account.dart';
 
 class HeroDetailPage extends StatefulWidget {
   final Pagina pagina;
@@ -11,37 +11,61 @@ class HeroDetailPage extends StatefulWidget {
 
   @override
   State<HeroDetailPage> createState() => _HeroDetailPageState();
-}
+} 
 
 class _HeroDetailPageState extends State<HeroDetailPage> {
+  // isOpen: stato del menu ad espansione
   bool isOpen = false;
+  // isOpen: stato del menu ad espansione
+  bool traduzioneOn = false;
 
+  // Costruttore
   @override
   void initState() {
     super.initState();
+    // Stati dai ValueNotifier<bool>
     isOpen = StaticGesture.menuFlag.value;
+    traduzioneOn = StaticGesture.traduzioneOn.value;
+    // Listener di aggiornamento
     StaticGesture.menuFlag.addListener(onFlagChanged);
+    StaticGesture.traduzioneOn.addListener(onTraduzione);
   }
 
+  // Eventi di callback per il menù e per la traduzione
   void onFlagChanged() {
     setState(() {
       isOpen = StaticGesture.menuFlag.value;
     });
   }
 
+  void onTraduzione(){
+    setState(() {
+      traduzioneOn = StaticGesture.traduzioneOn.value;
+    });
+  }
+
+  // Rimozione dei listener dopo il dispose del widget
+  @override
+  void dispose() {
+    StaticGesture.menuFlag.removeListener(onFlagChanged);
+    StaticGesture.traduzioneOn.removeListener(onTraduzione);
+    super.dispose();
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: false, // Disabilita il resize
       body: Stack(
         children: [
+          // Builder per il rebuild con ValueNotifier<bool>
           ValueListenableBuilder<bool>(
             valueListenable: StaticGesture.menuFlag,
             builder: (context, value, child) {
               return SizedBox.shrink();
             },
           ),
-          // Sfondo
+          // Sfondo dinamico
           Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -54,6 +78,7 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
               ),
             ),
           ),
+          // Contenuto centrale con logo e testi
           Center(
             child: IntrinsicHeight(
               child: Container (
@@ -66,6 +91,7 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                   children: [
                     Stack(                     
                       children: [
+                        // Logo cliccabile che apre il sito web
                         GestureDetector(
                           onTap: () async{
                             final Uri url = Uri.parse('https://www.develon.com/it/');
@@ -81,7 +107,8 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                               height: 200,
                             ),
                           ),
-                        ),                      
+                        ),      
+                        // Icona per indicare apertura esterna link                
                         Positioned(
                           right: 8,
                           bottom: 8,
@@ -89,6 +116,7 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                         ),
                       ]
                     ),
+                    // Titolo
                     Text(
                       "PCTO 2025",
                       textAlign: TextAlign.center,
@@ -99,8 +127,9 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                       ),
                     ),
                     const SizedBox(height: 10),
+                    // Sottotitolo
                     Text(
-                      "Carlassara Pietro e Creazzo Nicola",
+                      'Carlassara Pietro & Creazzo Nicola',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
@@ -112,6 +141,7 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
               ),
             ),
           ),
+          // Pulsante in basso a destra per tornare indietro
           Positioned(
             bottom: 16,
             right: 16,
@@ -130,7 +160,7 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                   child: Center(
                     child: Image.asset(
                       widget.pagina == Pagina.prima 
-                      ? 'assets/logo/LogoMigliore.png'
+                      ? 'assets/logo/LogoGoogle.png'
                       : 'assets/logo/BuildingIcon.png',
                       width: 60,
                       height: 60,
@@ -141,9 +171,11 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
               ),
             ),
           ),
+          // Menu impostazioni espandibile in alto a sinistra
           Positioned(
             top: 45,
             left: 16,
+            // Animazione
             child: ClipRRect(
               borderRadius: BorderRadius.circular(100),
               child: AnimatedContainer(
@@ -161,18 +193,20 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      // Button di apertura
                       IconButton(
                         icon: Icon(Icons.settings,
                             color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
                         onPressed: () {
                           setState(() {
-                            StaticGesture.menuFlag.value = !StaticGesture.menuFlag.value;
+                            StaticGesture.changeMenuState();
                           });
                         },
                       ),
                       if (isOpen)
                         Row(
                           children: [
+                            // Button per il cambio del tema
                             IconButton(
                               icon: Icon(
                                 StaticGesture.getIconTheme(context),
@@ -184,15 +218,6 @@ class _HeroDetailPageState extends State<HeroDetailPage> {
                                 StaticGesture.changeTheme(context);
                               },
                             ),
-                            if(widget.pagina == Pagina.seconda)
-                              IconButton(
-                                icon: Icon(Icons.person, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
-                                onPressed: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (_) => AccountPage(title: "Account Page")),
-                                  );
-                                },
-                              ),
                           ],
                         ),
                     ],

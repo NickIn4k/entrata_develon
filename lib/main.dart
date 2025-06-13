@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+// File locali
 import 'theme/theme.dart';
 import 'theme/provider_theme.dart';
 import 'package:provider/provider.dart';
@@ -10,12 +11,16 @@ import 'static_gesture.dart';
 import 'second_page.dart';
 import 'hero.dart';
 
+// Chiave globale per la navigazione: permette di usare il Navigator da qualsiasi punto dell'app
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
+  // Assicura che i binding di Flutter siano inizializzati prima di chiamare metodi asincroni
   WidgetsFlutterBinding.ensureInitialized();
+  // Inizializza Firebase (per l'accesso con google)
   await Firebase.initializeApp();
 
+  // Provider per la gestione del tema
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),
@@ -29,11 +34,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Controlla se esiste un utente loggato
     User? user = FirebaseAuth.instance.currentUser;
 
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
+      // Definizione dei temi con una personalizzazione delle Snackbars
+      // Tema chiaro
       theme: lightMode.copyWith(
         snackBarTheme: SnackBarThemeData(
           behavior: SnackBarBehavior.floating, 
@@ -43,6 +51,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
+      // Tema scuro
       darkTheme: darkMode.copyWith(
         snackBarTheme: SnackBarThemeData(
           behavior: SnackBarBehavior.floating, 
@@ -52,7 +61,10 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
+      // Sceglie il tema basato sul ValueNotifier gestito da StaticGesture
       themeMode: StaticGesture.getThemeMode(context),
+
+      // redirect diretto a SecondaPagina in caso di utente già loggato
       home: user != null 
         ? SecondaPagina() 
         : const MyHomePage(title: 'Login'),
@@ -70,41 +82,66 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  // isOpen: stato del menu ad espansione
   bool isOpen = false;
-  // finalFlutterLocalization _loc = FlutterLocalization.instance;
+  // traduzioneOn: stato della traduzione => false = ita / true = eng
+  bool traduzioneOn = false;
 
+  // Costruttore
   @override
   void initState() {
     super.initState();
+    // Stati dai ValueNotifier<bool>
     isOpen = StaticGesture.menuFlag.value;
+    traduzioneOn = StaticGesture.traduzioneOn.value;
+    // Listener di aggiornamento
     StaticGesture.menuFlag.addListener(onFlagChanged);
+    StaticGesture.traduzioneOn.addListener(onTraduzione);
   }
 
+  // Eventi di callback per il menù e per la traduzione
   void onFlagChanged() {
     setState(() {
       isOpen = StaticGesture.menuFlag.value;
     });
   }
 
+  void onTraduzione(){
+    setState(() {
+      traduzioneOn = StaticGesture.traduzioneOn.value;
+    });
+  }
+
+  // Rimozione dei listener dopo il dispose del widget
   @override
   void dispose() {
     StaticGesture.menuFlag.removeListener(onFlagChanged);
+    StaticGesture.traduzioneOn.removeListener(onTraduzione);
     super.dispose();
   }
+  
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, // disattiva il pulsante indietro
+      canPop: false, // No back button di android
       child: Scaffold(
         body: Stack(
           children: [
+            // Builder di ValueNotifier<bool>
             ValueListenableBuilder<bool>(
-                valueListenable: StaticGesture.menuFlag,
-                builder: (context, value, child) {
-                  return SizedBox.shrink();
-                },
+              valueListenable: StaticGesture.menuFlag,
+              builder: (context, value, child) {
+                return SizedBox.shrink();
+              },
             ),
+            ValueListenableBuilder<bool>(
+              valueListenable: StaticGesture.traduzioneOn,
+              builder: (context, value, child) {
+                return SizedBox.shrink();
+              },
+            ),
+            // Sfondo dinamico basato sul tema
             Container(
               decoration: BoxDecoration(
                 image: DecorationImage(
@@ -113,6 +150,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ),
+            // Box centrale con testo e pulsante di login
             Center(
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -124,8 +162,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Titolo
                     Text(
-                      "Benvenuto!",
+                      StaticGesture.getTraduzione("Benvenuto!", "Welcome!"),  // Traduzione dinamica => spiegata in StaticGesture
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 45,
@@ -133,8 +172,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
                       ),
                     ),
+                    // Sottotitolo
                     Text(
-                      "Per ragioni di sicurezza, identificati per proseguire.",
+                      StaticGesture.getTraduzione("Per ragioni di sicurezza, identificati per proseguire.","For security reasons, please identify yourself to continue."),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
@@ -142,6 +182,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ),
                     SizedBox(height: 20),
+                    // Pulsante di login => colori con StaticGesture
                     SizedBox(
                       width: 250,
                       height: 80,
@@ -156,18 +197,19 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                         ),
                         icon: Image.asset(
-                          'assets/logo/LogoMigliore.png',
+                          'assets/logo/LogoGoogle.png',
                           height: 24,
                         ),
                         label: Text(
-                          'Continua con Google',
+                          StaticGesture.getTraduzione('Continua con Google','Continue with Google'),
                           textAlign: TextAlign.center,
                         ),
                         onPressed: () async {
+                          // Avvia il processo di login con firebase di Google
                           bool successo = await signInWithGoogle();
                           if (successo) {
                             navigatorKey.currentState?.pushReplacement(
-                              MaterialPageRoute(builder: (_) => SecondaPagina()),
+                              MaterialPageRoute(builder: (_) => SecondaPagina()), // Avvia e sostituisci con la seconda pagina
                             );
                           }
                         },
@@ -177,13 +219,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ),
+            // Logo per l'apertura di un piccolo About
             Positioned(
               bottom: 16,
               right: 16,
               child: GestureDetector(
                 onTap: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => HeroDetailPage(pagina: Pagina.prima)),
+                    MaterialPageRoute(builder: (_) => HeroDetailPage(pagina: Pagina.prima)),  // Avvia ma NON sostiutisce la pagina corrente
                   );
                 },
                 child: Container(
@@ -206,9 +249,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ),
+            // Menu impostazioni espandibile
             Positioned(
                 top: 45,
                 left: 16,
+                // Animazione
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(100),
                   child: AnimatedContainer(
@@ -226,18 +271,20 @@ class _MyHomePageState extends State<MyHomePage> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
+                          // Button di apertura
                           IconButton(
                             icon: Icon(Icons.settings,
                                 color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
                             onPressed: () {
                               setState(() {
-                                StaticGesture.menuFlag.value = !StaticGesture.menuFlag.value;
+                                StaticGesture.changeMenuState();
                               });
                             },
                           ),
                           if (isOpen)
                             Row(
                               children: [
+                                // Button per il cambio del tema
                                 IconButton(
                                   icon: Icon(
                                     StaticGesture.getIconTheme(context),
@@ -248,6 +295,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
                                   },
                                 ),
+                                // Button per la traduzione
                                 IconButton(
                                   icon: Icon(
                                     Icons.translate,
@@ -255,7 +303,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     size: 35,
                                   ),
                                   onPressed: () {
-                                    
+                                    StaticGesture.changeLanguage();
                                   },
                                 ),
                               ],
@@ -273,14 +321,17 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
+// Login tramite Google e Firebase, restituzione di una boolean per il successo
 Future<bool> signInWithGoogle() async {
   try {
     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
+    // Chiusura pop-up senza aver sselezionato una mail
     if (googleUser == null) return false;
 
     final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
+    // Credenziali per Firebase
     final AuthCredential credential = GoogleAuthProvider.credential(
       accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
@@ -291,30 +342,34 @@ Future<bool> signInWithGoogle() async {
     final User? user = userCredential.user;
     final String? email = user?.email;
 
+    // Controllo email valida
     if (email == null || email.isEmpty) {
-      //Logout
+      // Logout
       await FirebaseAuth.instance.signOut();
       await GoogleSignIn().signOut();
 
-      await StaticGesture.playSound('sounds/messaggio_errore.mp3');
-      StaticGesture.showAppSnackBar(navigatorKey.currentContext!, 'Errore: impossibile recuperare l\'email utente.');
-
+      await StaticGesture.playSound('sounds/error.mp3');
+      StaticGesture.showAppSnackBar(navigatorKey.currentContext!, StaticGesture.getTraduzione('Errore: impossibile recuperare l\'email utente.', 'Error: Unable to retrieve user email.'));
       return false;
     }
 
-    //dominio deve essere "@develon.com"
-    if (!email.toLowerCase().endsWith('@gmail.com')) {
+    // Controllo di dominio => deve essere '@develon.com'
+    else if (!email.toLowerCase().endsWith('@gmail.com')) {
       //Logout 
       await FirebaseAuth.instance.signOut();
       await GoogleSignIn().signOut();
-      await StaticGesture.playSound('sounds/messaggio_errore.mp3');
-      StaticGesture.showAppSnackBar(navigatorKey.currentContext!, 'Accesso consentito solo con email @develon.com');
+      await StaticGesture.playSound('sounds/error.mp3');
+      StaticGesture.showAppSnackBar(navigatorKey.currentContext!, StaticGesture.getTraduzione('Accesso consentito solo con email @develon.com','Access allowed only with @develon.com email'));
       return false;
     }
+
+    // Login avvenuto con successo: riproduce suono di conferma
+    await StaticGesture.playSound('sounds/logout.mp3');
     return true;
   } catch (e) {
-    await StaticGesture.playSound('sounds/messaggio_errore.mp3');
-    StaticGesture.showAppSnackBar(navigatorKey.currentContext!, 'Errore: $e');
+    // Gestione di qualsiasi altro errore generico
+    await StaticGesture.playSound('sounds/error.mp3');
+    StaticGesture.showAppSnackBar(navigatorKey.currentContext!, StaticGesture.getTraduzione('Errore: $e', 'Error: $e'));
     return false;
   }
 }

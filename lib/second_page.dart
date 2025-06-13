@@ -1,5 +1,3 @@
-// Da correggere il Positioned rosso delle distanza
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -13,7 +11,7 @@ import 'package:app_settings/app_settings.dart';
 import 'package:slide_to_act/slide_to_act.dart';
 import 'package:provider/provider.dart';
 
-// FILE LOCALI
+// File locali
 import 'theme/provider_theme.dart';
 import 'static_gesture.dart';
 import 'hero.dart';
@@ -36,20 +34,21 @@ class SecondaPagina extends StatefulWidget{
 // _SecondaPaginaState è una classe privata ( _ ), estende la classe State<SecondaPagina> cioè gestisce lo stato della seconda pagina
 class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserver {
   // Distanza massima ( in metri )
-  final double max = 10;
+  final double max = 10000000;
 
-  // Contiene la posizione GPS attuale dell'utente
+  // La posizione GPS attuale dell'utente
   Position? currentPosition;
-  // Contiene la distanza calcolata tra l'utente e la porta
+  // La distanza calcolata tra l'utente e la porta
   double? distanceFromDoor = -1;
 
   // Indica se un operazione in corso
   bool isLoading = false;
   // Se la porta è aperta o chiusa
   bool portaAperta = false;
-  bool gpsAttivo = true;
+  bool gpsAttivo = false;
   // Menu a tendina
   bool isOpen = false;
+  bool traduzioneOn = false;
 
   bool isDialogVisible = false;
 
@@ -63,89 +62,132 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
   StreamSubscription<Position>? positionStream;
 
   // Metodo chiamato alla creazione del widget, quando la schermata viene creata
-  @override
+  // Metodo eseguito una sola volta, quando il widget viene creato per la prima volta
+  @override // initState, metodo della superclasse
   void initState() {
     // Chiama il comportamento base della superclasse ( super: superclasse )
     super.initState();
-
+    // Sto registrando questo widget come un osservatore de ciclo di vita dell'app
     WidgetsBinding.instance.addObserver(this);
 
     isOpen = StaticGesture.menuFlag.value;
+    traduzioneOn = StaticGesture.traduzioneOn.value;
 
+    // Listener che permettono di aggiornare l'interfaccia
     StaticGesture.menuFlag.addListener(onFlagChanged);
+    StaticGesture.traduzioneOn.addListener(onTraduzione);
     
     // Controlla se il GPS è attivo o disattivato
     ascoltaStatoGps();
     // Inizia ad ascoltare la posizione GPS in tempo reale
     locationUpdates();
-    
   }
 
+  // Metodo chiamato automaticamente quando lo stato del ciclo di vita dell'app cambia
   @override
+  // state e il parametro che indica il nuovo stato dell'app
   void didChangeAppLifecycleState(AppLifecycleState state) async {
+    // Controlla se l'app è tornata dopo essere stata in background
+    // E se l'utente è ritornato dalle impostazioni
     if (state == AppLifecycleState.resumed && isReturningFromSettings) {
+      // Resetta la flag, l'app è tornata
       isReturningFromSettings = false;
-
+      // Controlla se il gps è attivo ...
       bool gpsEnabled = await Geolocator.isLocationServiceEnabled();
+      // Aggiorna lo stato interno del widget
+      // Notifica l'aggiornamento della UI
       setState(() => gpsAttivo = gpsEnabled);
 
+      // mounted, se il widget e ancora montato ( visisbile )
       if (!gpsEnabled && !isDialogVisible && mounted) {
-        mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+        mostraDialogErroreGPSAD(StaticGesture.getTraduzione('Attiva la geolocalizzazione per usare l\'app.', 'Enable geolocation to use the app.'));
+      }
+      // Se invece il GPS è attivo, chiama la funzione locationUpdates() per riprendere e ricevere aggiornamenti di posizione
+      else if(gpsEnabled){
+        locationUpdates();
       }
     }
   }
 
+  // Listener collegati ad oggetti ValueNotifier
+  // Chiamata ogni volta che il valore StaticGesture.menuFlag cambia il valore
   void onFlagChanged() {
     setState(() {
       isOpen = StaticGesture.menuFlag.value;
     });
   }
 
-  // ?
+  // Chiamata ogni volta che il valore StaticGesture.traduzioneOn cambia il valore
+  void onTraduzione() {
+    setState(() {
+      traduzioneOn = StaticGesture.traduzioneOn.value;
+    });
+  }
+
+  // Metodo dispose, per pulire le risorse qunado il widget Stateful viene rimosso ( distrutto )
+  // Verrà chiamato automaticamente quando il widget viene rimosso
   @override
   void dispose() {
+    // Cancello un stream
     positionStream?.cancel();
+    // Rimuovere il widget come osservatore del ciclo di vita dell'app
     WidgetsBinding.instance.removeObserver(this);
+    // Rimuovi i listener dai ValueNotifier
     StaticGesture.menuFlag.removeListener(onFlagChanged);
+    StaticGesture.traduzioneOn.removeListener(onTraduzione);
+    // Chiama il metodo dispose() della superclasse ( super ) per completare la distruzione
     super.dispose();
   }
 
-  // Metodo per mostrare il messaggio di errore, per il GPS ( se è attivo o disattivata la geolocalizzazione )
+  // Metodo per mostrare un dialogo di errore all’utente quando la geolocalizzazione (GPS) è spenta
+  // Mostra una finestra modale con un messaggio passato come parametro
   Future<void> mostraDialogErroreGPSAD(String messaggio) async {
-
+    // Evita che il dialogo venga mostrato contemporaneamentre
     if (isDialogVisible) return;
     isDialogVisible = true;
 
-    // Funzione per mostrare un dialogo modale
+    await StaticGesture.playSound('sounds/error.mp3');
+    
     // Flutter costruisce un nuovo widget sopra l'interfaccia utente
     // Blocca l'interazione con la UI, finche l'utente non chiude il dialogo 
     await showDialog(
-      // context serve a Flutter per sapere dove mostrare il dialogo ( in quale parte dell'app )
+      // context serve a Flutter per sapere dove mostrare il dialogo ( in quale parte dell'app, nella gerarchia dei widget )
       context: context,
-      // Per evitare che l'utente possa uscire accidentalmente
+      // Per evitare che l'utente possa uscire accidentalmente, non può toccare fuori dal dialogo
       barrierDismissible: false,
       // builder: Funzione che costruisce il contenuto del dialogo
+      // Parametro obbligatorio di showDialog
+      // Flutter richiama questa funzione quando ha bisogno di costruire ( o ricostruire ) il dialogo
+      // Vuole come parametro un buildContext
+      // Restituisce un AlertDialog
       builder: (_) => AlertDialog(
-        title: const Text('Errore GPS'),
+        title: Text(StaticGesture.getTraduzione('Errore GPS', 'GPS Error')),
         content: Text(messaggio),
         // actions è una lista di pulsanti in basso nel popup
         actions: [
+          // Pulsante ATTIVA
           TextButton(
-            child: const Text('Attiva'),
+            child: Text(StaticGesture.getTraduzione('Attiva', 'Activate')),
             onPressed: () async {
-              Navigator.of(context).pop(); // chiudi il dialog
+              // Chiude il dialogo
+              Navigator.of(context).pop();
               isDialogVisible = false;
 
+              // Per sapere se l'utenre e andato nella impostazioni
               isReturningFromSettings = true;
-
+              
+              // Apre le impostazioni di sistema per attivare la geolocalizzazione
+              // Libreria, app_settings
               await AppSettings.openAppSettings(type: AppSettingsType.location);
             },
           ),
+          // Pulsante NEGA
           TextButton(
-            child: const Text("Nega"),
+            child: Text(StaticGesture.getTraduzione("Nega", "Deny")),
             onPressed: () {
               // Chiude il dialogo
-              Navigator.of(context).pop(); 
+              Navigator.of(context).pop();
+              isDialogVisible = false;
               // Chiude l'app
               SystemNavigator.pop();        
             },
@@ -159,60 +201,74 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
 
   // Metodo per mostrare il messaggio di errore, per il GPS ( per i permessi )
   Future<void> mostraDialogErrore(String messaggio) async {
+    // Serve per impedire che più dialoghi vengano mostrati contemporaneamente
+    if (isDialogVisible) return;
+    isDialogVisible = true;
+
+    await StaticGesture.playSound('sounds/error.mp3');
+
     // Funzione per mostrare un dialogo modale
     // Flutter costruisce un nuovo widget sopra l'interfaccia utente
-    // Blocca l'interazione con la UI, finche l'utente non chiude il dialogo 
+    // Blocca l'interazione con la UI, finche l'utente non chiude il dialogo
     await showDialog(
       // context serve a Flutter per sapere dove mostrare il dialogo ( in quale parte dell'app )
       context: context,
       // builder: Funzione che costruisce il contenuto del dialogo
       builder: (_) => AlertDialog(
-        title: const Text('Permessi GPS negati'),
+        title: Text(StaticGesture.getTraduzione('Permessi GPS negati', 'GPS Permissions Denied')),
         content: Text(messaggio),
         // actions è una lista di pulsanti in basso nel popup
         actions: [
+          // Pulsante OK, pulsante di chiusura
           TextButton(
             child: const Text('OK'),
             onPressed: () {
-              // Chiudo il dialogo
+              // Chiude il dialogo
               Navigator.of(context).pop();
-              // Chiudo l'app
+              isDialogVisible = false;
+              // Chiude l'app
               SystemNavigator.pop();
             }
           ),
         ],
       ),
     );
+
+    isDialogVisible = false;
   }
 
-
   // Metodo che ascolta lo stato del GPS ( attivato/disattivato )
+  // Metodo che imposta un listener sullo stato del GPS
   void ascoltaStatoGps() {
     // Quando lo stato del servizio GPS cambia aggiorna la variabile gpsAttivo
     // GPS attivo: ServiceStatus.enabled
     // GPS disattivato: ServiceStatus.disabled
 
+    // Monitoraggio dell stato del GPS
+    // Restituisce uno stream che notifica ogni volta che lo stato del GPS cambia
     Geolocator.getServiceStatusStream().listen((ServiceStatus status) async {
       // Notifica Flutter che il widget deve essere aggiornato
       // Richiama il metodo build() del widget
+      // Aggiornamento della variabile gpsAttivo in base allo stato ricevuto
+      // setState per forzare il rebuild del widget
       setState(() {
         gpsAttivo = status == ServiceStatus.enabled;
       });
 
-      // if(!gpsAttivo){
-      //   mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
-      // }
+      // Se il gps è disattivato dopo 300 millisecondi, viene fatto un controllo agguintivo
       if (!gpsAttivo) {
         Future.delayed(Duration(milliseconds: 300), () async {
           bool check = await Geolocator.isLocationServiceEnabled();
           if (!check) {
-            await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+            await mostraDialogErroreGPSAD(StaticGesture.getTraduzione('Attiva la geolocalizzazione per usare l\'app.', 'Enable geolocation to use the app.'));
           }
         });
       }
     });
 
     // Controllo iniziale, all'avvio ( viene quindi eseguita una sola volta )
+    // Chiama il metodo asincrono Geolocator.isLocationServiceEnabled(), che restituisce un Future<bool>
+    // Quando la risposta è pronta ( then )
     Geolocator.isLocationServiceEnabled().then((enabled) {
       // Notifica Flutter che il widget deve essere aggiornato
       // Richiama il metodo build() del widget
@@ -220,15 +276,11 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
         gpsAttivo = enabled;
       });
 
-      // if(!gpsAttivo){
-      //    mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
-      // }
-
       if (!gpsAttivo) {
         Future.delayed(Duration(milliseconds: 300), () async {
           bool check = await Geolocator.isLocationServiceEnabled();
           if (!check) {
-            await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+            await mostraDialogErroreGPSAD(StaticGesture.getTraduzione('Attiva la geolocalizzazione per usare l\'app.', 'Enable geolocation to use the app.'));
           }
         });
       }
@@ -238,15 +290,16 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
   // Metodo asincrono che gestisce gli aggiornamenti della posizione GPS
   Future<void> locationUpdates() async {
 
+    // Controlla se il GPS è attivo
     bool gpsEnabled = await Geolocator.isLocationServiceEnabled();
     if (!gpsEnabled) {
       // Mostra il tuo dialogo personalizzato
-      await mostraDialogErroreGPSAD('Attiva la geolocalizzazione per usare l\'app.');
+      await mostraDialogErroreGPSAD(StaticGesture.getTraduzione('Attiva la geolocalizzazione per usare l\'app.', 'Enable geolocation to use the app.'));
       return;
     }
 
     // PERMESSI
-    // Controlla i permessi dell'app per accedere alla posizione
+    // Controlla i permessi dell'app necessari per accedere alla posizione
     LocationPermission permesso = await Geolocator.checkPermission();
     // Verifica che i permessi di localizzazione sono stati concessi
     if (permesso == LocationPermission.denied) {
@@ -254,7 +307,7 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
       permesso = await Geolocator.requestPermission();
       // Se il permesso viene ancora negato
       if (permesso == LocationPermission.denied) {
-        await mostraDialogErrore('Permessi di geolocalizzazione negati.');
+        await mostraDialogErrore(StaticGesture.getTraduzione('Permessi di geolocalizzazione negati.', 'Location permissions denied.'));
         // Chiudo l'applicazione
         SystemNavigator.pop();
 
@@ -264,19 +317,20 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
 
     // Se il permesso viene negato permanentemente
     if (permesso == LocationPermission.deniedForever) {
-      await mostraDialogErrore('Permessi di geolocalizzazione negati in modo permanente.');
+      await mostraDialogErrore(StaticGesture.getTraduzione('Permessi di geolocalizzazione negati in modo permanente.', 'Location permissions permanently denied.'));
       // Chiudo l'applicazione
       SystemNavigator.pop();
 
       return;
     }
 
-
-    // Usa l'ultima posizione nota (se c'è)
+    // Usa l'ultima posizione memorizzata dal sistema ( se c'è )
+    // Non attiva il GPS
     Position? lastKnown = await Geolocator.getLastKnownPosition();
     if (lastKnown != null) {
       // Aggiorna lo stato
       setState(() {
+        // Aggiorna la variabile currentPosition
         currentPosition = lastKnown;
         // Calcola la distanza
         distanceFromDoor = Geolocator.distanceBetween(
@@ -288,8 +342,6 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
       });
     }
 
-
-
     // Ascolta la posizione in tempo reale
     // getPositionStream, riceve aggiornamenti continui della posizione
     // Metodo che restituisce un stream continuo di posizioni
@@ -297,12 +349,13 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
     positionStream = Geolocator.getPositionStream(
       // Parametri di configurazione dello stream
       locationSettings: const LocationSettings(
-        // Massima Precisione
+        // Massima Precisione disponibile
         accuracy: LocationAccuracy.bestForNavigation,
         // L'evento si attiva ogni volta che ti sposti di almeno un metro
         distanceFilter: 1,
       ),
     // Ricezione posizione, permette di ascoltare i dati dello stream
+    // Ogni volta che riceve un aggiornamento, ricalcola la posizione
     ).listen((Position position) {
       // Calcolo della distanza
       double distanza = Geolocator.distanceBetween(
@@ -319,7 +372,10 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
     });
   }
 
+  // QUI CI SARA' LA CHIAMATA API
   Future<void> apriPorta() async {
+    // Avvio caricamento
+    // Aggiornamento UI
     setState(() => isLoading = true);
     await Future.delayed(const Duration(seconds: 2));
 
@@ -330,46 +386,51 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
       portaAperta = true;
     });
 
-    await StaticGesture.playSound('sounds/porta_aperta.mp3');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Porta Aperta',
-          style: TextStyle(color: Colors.white),
-          textAlign: TextAlign.center,
+    await StaticGesture.playSound('sounds/door_opened.mp3');
+    // Mostra una SnackBar ( notifica )
+    if (context.mounted){
+      // Messaggio temporaneo
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            StaticGesture.getTraduzione('Porta Aperta', 'Door Opened'),
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
         ),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 3),
-      ),
-    );
+      );
+    }
+
     return;
   }
 
+  // QUI CI SARA' LA CHIAMATA API
   Future<void> chiudiPorta() async{
     setState(() => isLoading = true);
     await Future.delayed(const Duration(seconds: 2));
-
-    if (!mounted) return;
 
     setState(() {
       isLoading = false;
       portaAperta = false;
     });
 
-    await StaticGesture.playSound('sounds/porta_chiusa.wav');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Porta Chiusa',
-          style: TextStyle(color: Colors.white),
-          textAlign: TextAlign.center,
+    await StaticGesture.playSound('sounds/door_closed.mp3');
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            StaticGesture.getTraduzione('Porta Chiusa', 'Closed Door'),
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3)
         ),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 3)
-      ),
-    );
+      );
+    }
+    
     return;
   }
 
@@ -378,16 +439,24 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
     bool isWithinRange = (distanceFromDoor ?? -1) >= 0 && (distanceFromDoor ?? -1) <= max;
     
     return PopScope(
-      canPop: false,
+      canPop: false,  // Blocco back button di Android
       child: Scaffold(
         body: Stack(
           children: [
+            // Builder di ValueNotifier<bool>
             ValueListenableBuilder<bool>(
               valueListenable: StaticGesture.menuFlag,
               builder: (context, value, child) {
                 return SizedBox.shrink();
               },
             ),
+            ValueListenableBuilder<bool>(
+              valueListenable: StaticGesture.traduzioneOn,
+              builder: (context, value, child) {
+                return SizedBox.shrink();
+              },
+            ),
+            // Background
             Positioned.fill(
               child: Image.asset(
                 StaticGesture.getPath(context, 'assets/background/Background2.jpg', 'assets/background/DarkBackground2.png'),
@@ -402,10 +471,12 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
                   child: Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
+                      // Per prendere la posizione esatta dello slider
                       child: AbsorbPointer(
                         absorbing: isLoading || currentPosition == null || !isWithinRange || !gpsAttivo,
                         child: Opacity(
                           opacity: (isLoading || currentPosition == null || !isWithinRange || !gpsAttivo) ? 0.5 : 1.0,
+                          // Slider input animato
                           child: SlideAction(
                             borderRadius: 50,
                             elevation: 4,
@@ -421,7 +492,7 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
                               child: Icon(portaAperta? Icons.lock : Icons.lock_open, color: Colors.white),
                             ),
                             alignment: portaAperta ? Alignment.center : Alignment.center,
-                            text: portaAperta ? 'Scorri per chiudere' : 'Scorri per aprire',
+                            text: portaAperta ? StaticGesture.getTraduzione('Scorri per chiudere', 'Slide to close') : StaticGesture.getTraduzione('Scorri per aprire', 'Slide to open'),
                             textStyle: TextStyle(
                               color: StaticGesture.getTextColor(context, Colors.white, Colors.black), 
                               fontSize: 20,
@@ -443,6 +514,7 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
                 ),
               ],
             ),
+            // Slider (back) per la SlideBar
             Positioned(
               top: 45,
               left: 16,
@@ -463,17 +535,19 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        // Button di apertura
                         IconButton(
                           icon: Icon(Icons.settings, color: StaticGesture.getTextColor(context, Colors.white, Colors.black87), size: 35),
                           onPressed: () {
                             setState(() {
-                              StaticGesture.menuFlag.value = !StaticGesture.menuFlag.value;
+                              StaticGesture.changeMenuState();
                             });
                           },
                         ),
                         if (isOpen)
                           Row(
                             children: [
+                              // Button per il cambio del tema
                               IconButton(
                                 icon: Icon(
                                   StaticGesture.getIconTheme(context),
@@ -484,21 +558,7 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
                                   Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
                                 },
                               ),
-                              IconButton(
-                                icon: Icon(Icons.logout, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
-                                onPressed: () async {
-                                  await FirebaseAuth.instance.signOut();
-                                  await GoogleSignIn().signOut();
-
-                                  if (!mounted) return;
-                                  await StaticGesture.playSound('sounds/porta_chiusa.wav');
-                                  StaticGesture.showAppSnackBar(context, 'Logout effettuato');
-
-                                  Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(builder: (_) => MyHomePage(title: 'login')),
-                                  );
-                                },
-                              ),
+                              // Button per l'apertura della finestra utente
                               IconButton(
                                 icon: Icon(Icons.person, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
                                 onPressed: () {
@@ -507,6 +567,18 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
                                   );
                                 },
                               ),
+                              // Button per la traduzione
+                              IconButton(
+                                icon: Icon(
+                                  Icons.translate,
+                                  color: StaticGesture.getTextColor(context, Colors.white, Colors.black),
+                                  size: 35,
+                                ),
+                                onPressed: () {
+                                  StaticGesture.changeLanguage();
+                                },
+                              ),
+                              // Button per l'apertura di maps
                               IconButton(
                                 icon: Icon(Icons.location_on, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
                                 onPressed: () async {
@@ -515,7 +587,24 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
                                     throw Exception('Could not launch $url');
                                   }
                                 },
-                              )
+                              ),
+                              // Button per il logout
+                              IconButton(
+                                icon: Icon(Icons.logout, color: StaticGesture.getTextColor(context, Colors.white, Colors.black), size: 35),
+                                onPressed: () async {
+                                  await FirebaseAuth.instance.signOut();
+                                  await GoogleSignIn().signOut();
+
+                                  if (context.mounted){
+                                    await StaticGesture.playSound('sounds/logout.mp3');
+                                    StaticGesture.showAppSnackBar(context, StaticGesture.getTraduzione('Logout effettuato', 'Logout completed'));
+
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(builder: (_) => MyHomePage(title: 'login')),
+                                    );
+                                  }
+                                },
+                              ),
                             ],
                           ),
                       ],
@@ -524,6 +613,7 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
                 ),
               ),
             ),
+            // Logo per l'apertura di un about
             Positioned(
               bottom: 16,
               right: 16,
@@ -553,13 +643,14 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
                 ),
               ),
             ),
+            // Sottotitolo in basso
             Positioned(
               bottom: 25,
               left: 0,
               right: 0,
               child: Center(
                 child: Text(
-                  "Entrata",
+                  StaticGesture.getTraduzione("Entrata", 'Entrance'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 20,
@@ -570,12 +661,13 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
                 ),
               ),
             ),
+            // Box che indica la distanza (in caso fosse troppa)
             Positioned(
               bottom: 20,
               left: 20,
               right: 20,
               child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 300),
+                duration: const Duration(milliseconds: 100),
                 opacity: (gpsAttivo && distanceFromDoor != null && distanceFromDoor! > max) ? 1.0 : 0.0,
                 child: IgnorePointer(
                   ignoring: !(gpsAttivo && distanceFromDoor != null && distanceFromDoor! > max),
@@ -599,7 +691,7 @@ class _SecondaPaginaState extends State<SecondaPagina> with WidgetsBindingObserv
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            'Sei troppo lontano (${distanceFromDoor!.toStringAsFixed(1)} m)',
+                            StaticGesture.getTraduzione('Sei troppo lontano! (${distanceFromDoor!.toStringAsFixed(1)} m)', 'You\'re too far away! (${distanceFromDoor!.toStringAsFixed(1)} m)'),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14,
